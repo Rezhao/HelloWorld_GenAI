@@ -1,4 +1,6 @@
-import { createClient } from '@/app/utils/server'
+// import { createClient } from '@/app/utils/server'
+import { createClient } from './utils/server'
+
 
 // Optional: Define an interface matching your table structure for strict typing
 interface DbItem {
