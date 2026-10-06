@@ -76,7 +76,7 @@ export default async function HomePage() {
         />
       </header>
       <section className="mx-auto w-full max-w-5xl pt-14 sm:pt-20">
-        <div className="max-w-2xl">
+        <div className="w-full">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-600">Rate My Captions</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
             Vote and generate new captions with AI.
