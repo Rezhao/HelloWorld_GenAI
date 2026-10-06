@@ -14,7 +14,7 @@ export interface Generation {
 
 interface DisplayGeneration extends Generation {
   image_url: string
-  score: number
+  likes_count: number
   user_vote: -1 | 0 | 1
 }
 
@@ -161,7 +161,6 @@ export default function HomeWorkspace({
                   <p className="mt-3 text-xs leading-5 text-slate-500">Prompt: {generation.prompt}</p>
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-slate-600">Score: {generation.score}</span>
                       {generation.user_id === userId && (
                         <button
                           type="button"
@@ -173,8 +172,29 @@ export default function HomeWorkspace({
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => void handleVote(generation.id, 1)} aria-label="Upvote caption" className={`rounded-lg border px-3 py-2 text-sm font-bold transition ${generation.user_vote === 1 ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-slate-200 text-slate-600 hover:border-teal-400 hover:text-teal-700'}`}>Upvote</button>
-                      <button type="button" onClick={() => void handleVote(generation.id, -1)} aria-label="Downvote caption" className={`rounded-lg border px-3 py-2 text-sm font-bold transition ${generation.user_vote === -1 ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-700'}`}>Downvote</button>
+                      <button
+                        type="button"
+                        onClick={() => void handleVote(generation.id, 1)}
+                        aria-label="Upvote caption"
+                        title="Upvote caption"
+                        className={`flex items-center gap-1.5 rounded-lg border px-2 py-2 transition ${generation.user_vote === 1 ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-slate-200 text-slate-600 hover:border-teal-400 hover:text-teal-700'}`}
+                      >
+                        <span className="text-sm font-semibold">{generation.likes_count}</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 10v10H4V10h3Zm0 10h9.5a2 2 0 0 0 1.94-1.515l1.2-4.8A2 2 0 0 0 17.7 11H14l.55-3.3A2.3 2.3 0 0 0 12.28 5L7 10v10Z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleVote(generation.id, -1)}
+                        aria-label="Downvote caption"
+                        title="Downvote caption"
+                        className={`rounded-lg border p-2 transition ${generation.user_vote === -1 ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-700'}`}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 14V4h3v10h-3Zm0-10H7.5a2 2 0 0 0-1.94 1.515l-1.2 4.8A2 2 0 0 0 6.3 13H10l-.55 3.3A2.3 2.3 0 0 0 11.72 19L17 14V4Z" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>

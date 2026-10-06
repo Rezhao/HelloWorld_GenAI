@@ -62,7 +62,7 @@ export default async function HomePage() {
     return {
       ...generation,
       image_url: data?.signedUrl ?? '',
-      score: generationVotes.reduce((total, vote) => total + vote.vote, 0),
+      likes_count: generationVotes.filter((vote) => vote.vote === 1).length,
       user_vote: (generationVotes.find((vote) => vote.user_id === user.id)?.vote ?? 0) as -1 | 0 | 1,
     }
   }))
@@ -77,12 +77,12 @@ export default async function HomePage() {
       </header>
       <section className="mx-auto w-full max-w-5xl pt-14 sm:pt-20">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-600">Caption club</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-600">Rate My Captions</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
-            Make the internet caption your image.
+            Vote and generate new captions with AI.
           </h1>
           <p className="mt-4 text-base leading-7 text-slate-600">
-            Welcome, {displayName}. Upload a moment from around NYC, ask Gemini for a caption, and let the community decide if it lands.
+            Welcome, {displayName}. Upload an image, ask Gemini for a caption, and let the community decide if it lands.
           </p>
         </div>
         <HomeWorkspace generations={generations} userId={user.id} />
