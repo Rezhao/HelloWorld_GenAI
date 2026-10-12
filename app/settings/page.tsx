@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '../utils/server'
+import { createClient, getUserProfile } from '../utils/server'
 import SettingsForm from './settings-form'
 
 interface Profile {
@@ -18,21 +18,7 @@ export default async function SettingsPage() {
     redirect('/sign-in')
   }
 
-  const { data: profileById } = await supabase
-    .from('profiles')
-    .select('first_name, last_name, email, avatar_url')
-    .eq('id', user.id)
-    .maybeSingle() as { data: Profile | null }
-
-  const { data: profileByEmail } = profileById || !user.email
-    ? { data: null }
-    : await supabase
-      .from('profiles')
-      .select('first_name, last_name, email, avatar_url')
-      .eq('email', user.email)
-      .maybeSingle() as { data: Profile | null }
-
-  const profile = profileById ?? profileByEmail
+  const profile = await getUserProfile(user)
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-8 sm:px-8">

@@ -12,6 +12,14 @@ export interface Generation {
   prompt: string
   caption: string
   created_at: string
+  community_id: string | null
+  author_name: string
+  author_avatar_url: string | null
+}
+
+interface Community {
+  id: string
+  name: string
 }
 
 interface DisplayGeneration extends Generation {
@@ -52,14 +60,25 @@ async function prepareImage(file: File) {
 export default function HomeWorkspace({
   generations,
   userId,
+  showGenerator = true,
+  sectionTitle = 'Does it land?',
+  emptyMessage = 'The queue is waiting for its first image.',
+  communities = [],
+  communityId = null,
 }: {
   generations: DisplayGeneration[]
   userId: string
+  showGenerator?: boolean
+  sectionTitle?: string
+  emptyMessage?: string
+  communities?: Community[]
+  communityId?: string | null
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [message, setMessage] = useState('')
   const [selectedFileName, setSelectedFileName] = useState('')
   const [postView, setPostView] = useState<PostView>('gallery')
+  const availableCommunities = communities
 
   async function handleGenerate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -106,8 +125,9 @@ export default function HomeWorkspace({
 
   return (
     <div className="mt-12">
-      <form onSubmit={handleGenerate} className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl shadow-slate-900/10 sm:p-8">
+      {showGenerator && <form onSubmit={handleGenerate} className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl shadow-slate-900/10 sm:p-8">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-start">
+          {communityId && <input type="hidden" name="communityId" value={communityId} />}
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-300">New generation</p>
             <h2 className="mt-3 text-2xl font-bold">Give your camera roll a point of view.</h2>
@@ -152,13 +172,13 @@ export default function HomeWorkspace({
           </div>
         </div>
         {message && <p className="mt-4 text-sm text-teal-200" role="status">{message}</p>}
-      </form>
+      </form>}
 
-      <section aria-labelledby="vote-heading" className="mt-14">
+      <section aria-labelledby="vote-heading" className={showGenerator ? 'mt-14' : ''}>
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-600">Community queue</p>
-            <h2 id="vote-heading" className="mt-2 text-2xl font-bold text-slate-950">Does it land?</h2>
+            <h2 id="vote-heading" className="mt-2 text-2xl font-bold text-slate-950">{sectionTitle}</h2>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-500">{generations.length} {generations.length === 1 ? 'post' : 'posts'}</span>
@@ -197,7 +217,7 @@ export default function HomeWorkspace({
         </div>
         {generations.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-            The queue is waiting for its first image.
+            {emptyMessage}
           </div>
         ) : (
           <div className={`mt-6 grid gap-5 ${postView === 'gallery' ? 'sm:grid-cols-2 lg:grid-cols-3' : 'mx-auto max-w-2xl grid-cols-1'}`}>
@@ -205,7 +225,22 @@ export default function HomeWorkspace({
               <article key={generation.id} className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 {generation.image_url && <img src={generation.image_url} alt="User submission" className="aspect-16/10 w-full object-cover" />}
                 <div className="flex flex-1 flex-col p-5">
+                  <div className="mb-4 flex items-center gap-2">
+                    {generation.author_avatar_url ? (
+                      <img src={generation.author_avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700" aria-hidden="true">
+                        {generation.author_name.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-sm font-semibold text-slate-600">{generation.author_name}</span>
+                  </div>
                   <p className="text-lg font-semibold leading-7 text-slate-950">“{generation.caption}”</p>
+                  {generation.community_id && availableCommunities.find((community) => community.id === generation.community_id) && (
+                    <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-teal-600">
+                      {availableCommunities.find((community) => community.id === generation.community_id)?.name}
+                    </p>
+                  )}
                   <p className="mt-3 text-xs leading-5 text-slate-500">Prompt: {generation.prompt}</p>
                   <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-5">
                     <div className="flex items-center gap-3">

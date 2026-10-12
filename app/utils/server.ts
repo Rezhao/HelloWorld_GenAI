@@ -31,6 +31,72 @@ export async function createClient() {
   )
 }
 
+export interface UserProfile {
+  id: string
+  email: string | null
+  first_name: string | null
+  last_name: string | null
+  avatar_url: string | null
+}
+
+export async function getUserProfile(user: {
+  id: string
+  email?: string
+  user_metadata?: Record<string, unknown>
+  identities?: Array<{ provider?: string; identity_data?: Record<string, unknown> | null }>
+}) {
+  const supabase = await createClient()
+  const { data: profileById } = await supabase
+    .from('profiles')
+    .select('id, email, first_name, last_name, avatar_url')
+    .eq('id', user.id)
+    .maybeSingle() as { data: UserProfile | null }
+
+  const googleIdentity = user.identities?.find((identity) => identity.provider === 'google')?.identity_data ?? {}
+  const metadata = user.user_metadata ?? {}
+  const fullName = typeof googleIdentity.full_name === 'string'
+    ? googleIdentity.full_name
+    : typeof metadata.full_name === 'string'
+      ? metadata.full_name
+      : typeof googleIdentity.name === 'string'
+        ? googleIdentity.name
+        : typeof metadata.name === 'string' ? metadata.name : ''
+  const nameParts = fullName.trim().split(/\s+/).filter(Boolean)
+  const firstName = typeof googleIdentity.given_name === 'string'
+    ? googleIdentity.given_name
+    : typeof metadata.given_name === 'string' ? metadata.given_name : nameParts[0] ?? null
+  const lastName = typeof googleIdentity.family_name === 'string'
+    ? googleIdentity.family_name
+    : typeof metadata.family_name === 'string' ? metadata.family_name : nameParts.slice(1).join(' ') || null
+  const avatarUrl = [
+    googleIdentity.picture,
+    googleIdentity.avatar_url,
+    metadata.picture,
+    metadata.avatar_url,
+    metadata.photo,
+    metadata.image,
+  ]
+    .find((value): value is string => typeof value === 'string' && value.length > 0) ?? null
+
+  if (firstName || lastName || avatarUrl) {
+    await supabase.from('profiles').upsert({
+      id: user.id,
+      email: user.email ?? null,
+      first_name: firstName,
+      last_name: lastName,
+      avatar_url: avatarUrl || profileById?.avatar_url || null,
+    }, { onConflict: 'id' })
+  }
+
+  return {
+    id: user.id,
+    email: profileById?.email || user.email || null,
+    first_name: profileById?.first_name || firstName,
+    last_name: profileById?.last_name || lastName,
+    avatar_url: avatarUrl || profileById?.avatar_url || null,
+  }
+}
+
 export async function signInWithGoogle() {
   const supabase = await createClient()
   const requestHeaders = await headers()
@@ -232,6 +298,7 @@ export async function createGeneration(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   const file = formData.get('image')
   const prompt = formData.get('prompt')
+  const communityId = formData.get('communityId')
 
   if (!user) {
     throw new Error('You must be signed in to create a generation.')
@@ -251,6 +318,30 @@ export async function createGeneration(formData: FormData) {
 
   if (typeof prompt !== 'string' || prompt.trim().length < 5 || prompt.trim().length > 500) {
     throw new Error('Add a caption prompt between 5 and 500 characters.')
+  }
+
+  if (communityId && typeof communityId === 'string') {
+    const { data: membership, error: membershipError } = await supabase
+      .from('community_members')
+      .select('community_id')
+      .eq('community_id', communityId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (membershipError) {
+      throw new Error(membershipError.message)
+    }
+
+    if (!membership) {
+      const { error: joinError } = await supabase
+        .from('community_members')
+        .insert({ community_id: communityId, user_id: user.id })
+
+      if (joinError && joinError.code !== '23505') {
+        throw new Error(joinError.message)
+      }
+    }
+
   }
 
   const apiKey = process.env.GEMINI_API_KEY
@@ -335,6 +426,7 @@ Return only one complete sentence between 8 and 20 words. Do not use bullets, la
     .from('ai_generations')
     .insert({
       user_id: user.id,
+      community_id: typeof communityId === 'string' && communityId ? communityId : null,
       image_path: imagePath,
       prompt: prompt.trim(),
       caption,
@@ -346,6 +438,78 @@ Return only one complete sentence between 8 and 20 words. Do not use bullets, la
   }
 
   revalidatePath('/home')
+}
+
+export async function getCommunities() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return []
+
+  const { data, error } = await supabase
+    .from('communities')
+    .select('id, name')
+    .order('name')
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data ?? []
+}
+
+export async function getProfileCards(userIds: string[]) {
+  const supabase = await createClient()
+
+  if (userIds.length === 0) return {}
+
+  const { data, error } = await supabase
+    .from('profile_cards')
+    .select('id, first_name, last_name, avatar_url')
+    .in('id', userIds)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return Object.fromEntries((data ?? []).map((profile) => [profile.id, profile]))
+}
+
+export async function createCommunity(name: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('You must be signed in to create a community.')
+  }
+
+  const normalizedName = name.trim().replace(/\s+/g, ' ')
+  if (normalizedName.length < 2 || normalizedName.length > 50) {
+    throw new Error('Community names must be between 2 and 50 characters.')
+  }
+
+  const { data: community, error: communityError } = await supabase
+    .from('communities')
+    .insert({ name: normalizedName, created_by: user.id })
+    .select('id, name')
+    .single()
+
+  if (communityError) {
+    throw new Error(communityError.code === '23505'
+      ? 'That community already exists.'
+      : communityError.message)
+  }
+
+  const { error: membershipError } = await supabase
+    .from('community_members')
+    .insert({ community_id: community.id, user_id: user.id })
+
+  if (membershipError) {
+    throw new Error(membershipError.message)
+  }
+
+  revalidatePath('/home')
+  return community
 }
 
 export async function voteOnGeneration(generationId: string, vote: 1 | -1) {

@@ -1,12 +1,14 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Caption club setup
+## Rate My Captions setup
 
 The signed-in `/home` route lets users upload an image, ask Gemini for a caption, and upvote or downvote captions. Before using it:
 
 1. Add `GEMINI_API_KEY` to `.env` alongside the existing `SUPABASE_URL` and `SUPABASE_ANON_KEY` values.
-2. Run `supabase/schema.sql` in the Supabase SQL editor. It creates the generation and vote tables, the private `generated-media` bucket, and RLS policies.
-3. Make sure the Supabase Auth providers and redirect URL from the previous assignment are still configured.
+2. The original generation, vote, storage, and RLS setup should already be applied in Supabase from the previous setup.
+3. Run `supabase/communities.sql` in the Supabase SQL editor. It adds communities, memberships, the `community_id` generation relationship, and the related RLS policies.
+4. Run `supabase/profile-cards.sql` in the Supabase SQL editor to safely expose post author names and profile photos and allow Google profile synchronization.
+4. Make sure the Supabase Auth providers and redirect URL from the previous assignment are still configured.
 
 The Gemini request stays on the server, and the API key is never exposed to the browser. Generated images use signed URLs and are only readable by authenticated users.
 

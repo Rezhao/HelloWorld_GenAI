@@ -20,6 +20,7 @@ export default function Login({
   isSignedIn: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [avatarFailed, setAvatarFailed] = useState(false)
 
   const profileName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Your profile'
   const initials = [profile?.first_name, profile?.last_name]
@@ -47,12 +48,13 @@ export default function Login({
           aria-expanded={isOpen}
           aria-controls="profile-menu"
         >
-          {profile?.avatar_url ? (
-            <span
-              className="h-full w-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${profile.avatar_url})` }}
+          {profile?.avatar_url && !avatarFailed ? (
+            <img
+              src={profile.avatar_url}
               role="img"
               aria-label={`${profileName} avatar`}
+              className="h-full w-full object-cover"
+              onError={() => setAvatarFailed(true)}
             />
           ) : (
             initials
@@ -75,9 +77,16 @@ export default function Login({
           <p className="truncate text-sm font-semibold text-slate-950">{profileName}</p>
           <p className="mt-1 truncate text-xs text-slate-500">{profile?.email || 'Email not loaded'}</p>
           <Link
-            href="/settings"
+            href="/profile"
             onClick={() => setIsOpen(false)}
             className="mt-4 block rounded-lg border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Profile
+          </Link>
+          <Link
+            href="/settings"
+            onClick={() => setIsOpen(false)}
+            className="mt-3 block rounded-lg border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Settings
           </Link>

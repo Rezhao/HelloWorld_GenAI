@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '../utils/server'
-import Login from '../login'
+import { createClient, getCommunities, getProfileCards, getUserProfile } from '../utils/server'
+import HomeNav from './home-nav'
+import CommunitySidebar from './community-sidebar'
 import HomeWorkspace, { type Generation } from './home-workspace'
 
 interface Profile {
@@ -24,34 +25,29 @@ export default async function HomePage() {
     redirect('/sign-in')
   }
 
-  const { data: profileById } = await supabase
-    .from('profiles')
-    .select('first_name, last_name, email, avatar_url')
-    .eq('id', user.id)
-    .maybeSingle() as { data: Profile | null }
-
-  const { data: profileByEmail } = profileById || !user.email
-    ? { data: null }
-    : await supabase
-      .from('profiles')
-      .select('first_name, last_name, email, avatar_url')
-      .eq('email', user.email)
-      .maybeSingle() as { data: Profile | null }
-
-  const profile = profileById ?? profileByEmail
+  const profile = await getUserProfile(user)
   const displayName = [profile?.first_name, profile?.last_name]
     .filter(Boolean)
     .join(' ') || user.user_metadata?.full_name || user.email || 'there'
 
-  const { data: generationRows } = await supabase
+  const communities = await getCommunities()
+  const randomCommunity = communities.find((community) => community.name.toLowerCase() === 'random')
+
+  let generationQuery = supabase
     .from('ai_generations')
-    .select('id, image_path, prompt, caption, created_at, user_id')
+    .select('id, image_path, prompt, caption, created_at, user_id, community_id')
     .order('created_at', { ascending: false })
-    .limit(30) as { data: Generation[] | null }
+
+  if (randomCommunity) {
+    generationQuery = generationQuery.eq('community_id', randomCommunity.id)
+  }
+
+  const { data: generationRows } = await generationQuery.limit(100) as { data: Generation[] | null }
 
   const { data: votes } = await supabase
     .from('generation_votes')
     .select('generation_id, user_id, vote') as { data: Vote[] | null }
+  const profileCards = await getProfileCards((generationRows ?? []).map((generation) => generation.user_id))
 
   const generations = await Promise.all((generationRows ?? []).map(async (generation) => {
     const { data } = await supabase.storage
@@ -59,8 +55,12 @@ export default async function HomePage() {
       .createSignedUrl(generation.image_path, 60 * 60)
 
     const generationVotes = (votes ?? []).filter((vote) => vote.generation_id === generation.id)
+    const author = profileCards[generation.user_id]
+    const authorName = [author?.first_name, author?.last_name].filter(Boolean).join(' ') || 'Anonymous'
     return {
       ...generation,
+      author_name: authorName,
+      author_avatar_url: author?.avatar_url ?? null,
       image_url: data?.signedUrl ?? '',
       likes_count: generationVotes.filter((vote) => vote.vote === 1).length,
       user_vote: (generationVotes.find((vote) => vote.user_id === user.id)?.vote ?? 0) as -1 | 0 | 1,
@@ -68,14 +68,11 @@ export default async function HomePage() {
   }))
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-6 sm:px-8 sm:py-8">
-      <header className="mx-auto flex w-full max-w-5xl justify-end">
-        <Login
-          profile={profile ? { id: user.id, ...profile } : null}
-          isSignedIn
-        />
-      </header>
-      <section className="mx-auto w-full max-w-5xl pt-14 sm:pt-20">
+    <main className="min-h-screen bg-slate-50">
+      <HomeNav profile={profile} active="home" />
+      <div className="grid w-full gap-8 pt-0 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <CommunitySidebar communities={communities} activeCommunityId={randomCommunity?.id} />
+        <section className="mx-auto w-full max-w-5xl min-w-0 px-5 pt-8 sm:px-8 sm:pt-12 lg:mx-0 lg:px-0 lg:pr-8">
         <div className="w-full">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-600">Rate My Captions</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
@@ -85,8 +82,9 @@ export default async function HomePage() {
             Welcome, {displayName}. Upload an image, ask Gemini for a caption, and let the community decide if it lands.
           </p>
         </div>
-        <HomeWorkspace generations={generations} userId={user.id} />
-      </section>
+          <HomeWorkspace generations={generations} userId={user.id} communities={communities} communityId={randomCommunity?.id ?? null} sectionTitle="Random" />
+        </section>
+      </div>
     </main>
   )
 }

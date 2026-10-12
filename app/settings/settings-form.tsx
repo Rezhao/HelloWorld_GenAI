@@ -46,6 +46,7 @@ export default function SettingsForm({
   const [isSaving, setIsSaving] = useState(false)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState(initialValues.avatarUrl)
+  const [avatarFailed, setAvatarFailed] = useState(false)
   const [avatarMessage, setAvatarMessage] = useState('')
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
@@ -63,6 +64,7 @@ export default function SettingsForm({
       formData.append('avatar', file)
       const avatarUrl = await uploadAvatar(formData)
       setAvatarPreview(avatarUrl)
+      setAvatarFailed(false)
       updateField('avatarUrl', avatarUrl)
       setAvatarMessage('Profile photo updated.')
     } catch (error) {
@@ -158,14 +160,17 @@ export default function SettingsForm({
       <div className="space-y-3">
         <span className="block text-sm font-medium text-slate-700">Profile photo</span>
         <div className="flex items-center gap-4">
-          {avatarPreview ? (
+          {avatarPreview && !avatarFailed ? (
             <img
               src={avatarPreview}
               alt="Profile preview"
               className="h-16 w-16 rounded-full object-cover"
+              onError={() => setAvatarFailed(true)}
             />
           ) : (
-            <div className="h-16 w-16 rounded-full bg-slate-100" aria-hidden="true" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-lg font-bold text-teal-700" aria-label="Profile initials">
+              {[values.firstName, values.lastName].filter(Boolean).map((name) => name[0]).join('').toUpperCase() || '?'}
+            </div>
           )}
           <div className="min-w-0 flex-1 space-y-3">
             <input
