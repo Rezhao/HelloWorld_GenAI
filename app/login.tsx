@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { signOut } from './utils/server'
+import Avatar from './avatar'
 
 interface Profile {
   id: string
@@ -20,15 +21,8 @@ export default function Login({
   isSignedIn: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [avatarFailed, setAvatarFailed] = useState(false)
 
   const profileName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Your profile'
-  const initials = [profile?.first_name, profile?.last_name]
-    .filter(Boolean)
-    .map((name) => name?.[0])
-    .join('')
-    .toUpperCase() || '?'
-
   async function handleSignOut() {
     try {
       await signOut()
@@ -43,27 +37,17 @@ export default function Login({
         <button
           type="button"
           onClick={() => setIsOpen((open) => !open)}
-          className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-teal-600 text-sm font-bold text-white shadow-md ring-1 ring-slate-200 transition hover:ring-teal-400"
+          className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-melon-green-dark text-sm font-bold text-white shadow-md ring-1 ring-melon-border transition hover:ring-melon-green"
           aria-label={`Open ${profileName} profile menu`}
           aria-expanded={isOpen}
           aria-controls="profile-menu"
         >
-          {profile?.avatar_url && !avatarFailed ? (
-            <img
-              src={profile.avatar_url}
-              role="img"
-              aria-label={`${profileName} avatar`}
-              className="h-full w-full object-cover"
-              onError={() => setAvatarFailed(true)}
-            />
-          ) : (
-            initials
-          )}
+          <Avatar src={profile?.avatar_url} name={[profile?.first_name, profile?.last_name].filter(Boolean).join(' ')} className="h-full w-full text-sm" />
         </button>
       ) : (
         <Link
           href="/sign-in"
-          className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+          className="rounded-full bg-melon-pink px-4 py-2 text-sm font-semibold text-melon-yellow shadow-sm transition hover:bg-melon-yellow hover:text-melon-pink"
         >
           Sign in
         </Link>
@@ -72,28 +56,28 @@ export default function Login({
       {isSignedIn && isOpen ? (
         <div
           id="profile-menu"
-          className="absolute right-0 top-14 z-10 w-56 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/10"
+          className="absolute right-0 top-14 z-10 w-56 rounded-2xl border border-melon-border bg-white p-4 shadow-xl shadow-melon-plum/10"
         >
-          <p className="truncate text-sm font-semibold text-slate-950">{profileName}</p>
-          <p className="mt-1 truncate text-xs text-slate-500">{profile?.email || 'Email not loaded'}</p>
+          <p className="truncate text-sm font-semibold text-melon-forest">{profileName}</p>
+          <p className="mt-1 truncate text-xs text-melon-muted">{profile?.email || 'Email not loaded'}</p>
           <Link
             href="/profile"
             onClick={() => setIsOpen(false)}
-            className="mt-4 block rounded-lg border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="mt-4 block rounded-lg border border-melon-border px-4 py-2.5 text-center text-sm font-semibold text-melon-ink transition hover:bg-melon-cream"
           >
             Profile
           </Link>
           <Link
             href="/settings"
             onClick={() => setIsOpen(false)}
-            className="mt-3 block rounded-lg border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="mt-3 block rounded-lg border border-melon-border px-4 py-2.5 text-center text-sm font-semibold text-melon-ink transition hover:bg-melon-cream"
           >
             Settings
           </Link>
           <button
             type="button"
             onClick={handleSignOut}
-            className="mt-3 w-full rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="mt-3 w-full rounded-lg bg-melon-pink px-4 py-2.5 text-sm font-semibold text-melon-yellow transition hover:bg-melon-yellow hover:text-melon-pink"
           >
             Sign out
           </button>

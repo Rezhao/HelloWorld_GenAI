@@ -4,6 +4,11 @@ import { createServerClient } from '@supabase/ssr'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { isPostId, validateComment } from './comments'
+import { validateCommunity, type Community } from './community'
+import { resolveUserProfile, type UserProfile } from './profile'
+
+export type { UserProfile } from './profile'
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -31,14 +36,6 @@ export async function createClient() {
   )
 }
 
-export interface UserProfile {
-  id: string
-  email: string | null
-  first_name: string | null
-  last_name: string | null
-  avatar_url: string | null
-}
-
 export async function getUserProfile(user: {
   id: string
   email?: string
@@ -46,55 +43,32 @@ export async function getUserProfile(user: {
   identities?: Array<{ provider?: string; identity_data?: Record<string, unknown> | null }>
 }) {
   const supabase = await createClient()
-  const { data: profileById } = await supabase
+  const { data: profileById, error } = await supabase
     .from('profiles')
     .select('id, email, first_name, last_name, avatar_url')
     .eq('id', user.id)
-    .maybeSingle() as { data: UserProfile | null }
+    .maybeSingle() as { data: UserProfile | null; error: { message: string } | null }
 
-  const googleIdentity = user.identities?.find((identity) => identity.provider === 'google')?.identity_data ?? {}
-  const metadata = user.user_metadata ?? {}
-  const fullName = typeof googleIdentity.full_name === 'string'
-    ? googleIdentity.full_name
-    : typeof metadata.full_name === 'string'
-      ? metadata.full_name
-      : typeof googleIdentity.name === 'string'
-        ? googleIdentity.name
-        : typeof metadata.name === 'string' ? metadata.name : ''
-  const nameParts = fullName.trim().split(/\s+/).filter(Boolean)
-  const firstName = typeof googleIdentity.given_name === 'string'
-    ? googleIdentity.given_name
-    : typeof metadata.given_name === 'string' ? metadata.given_name : nameParts[0] ?? null
-  const lastName = typeof googleIdentity.family_name === 'string'
-    ? googleIdentity.family_name
-    : typeof metadata.family_name === 'string' ? metadata.family_name : nameParts.slice(1).join(' ') || null
-  const avatarUrl = [
-    googleIdentity.picture,
-    googleIdentity.avatar_url,
-    metadata.picture,
-    metadata.avatar_url,
-    metadata.photo,
-    metadata.image,
-  ]
-    .find((value): value is string => typeof value === 'string' && value.length > 0) ?? null
+  if (error) throw new Error(error.message)
 
-  if (firstName || lastName || avatarUrl) {
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      email: user.email ?? null,
-      first_name: firstName,
-      last_name: lastName,
-      avatar_url: avatarUrl || profileById?.avatar_url || null,
-    }, { onConflict: 'id' })
+  const profile = resolveUserProfile(user, profileById)
+  if (!profileById) {
+    // Never replace a profile that was saved concurrently during sign-in.
+    const { error: insertError } = await supabase.from('profiles').upsert(profile, {
+      onConflict: 'id',
+      ignoreDuplicates: true,
+    })
+    if (insertError) throw new Error(insertError.message)
+  } else if (!profileById.avatar_url && profile.avatar_url) {
+    // Persist the provider default for post author cards, without replacing uploads.
+    const { error: avatarError } = await supabase.from('profiles')
+      .update({ avatar_url: profile.avatar_url })
+      .eq('id', user.id)
+      .is('avatar_url', null)
+    if (avatarError) throw new Error(avatarError.message)
   }
 
-  return {
-    id: user.id,
-    email: profileById?.email || user.email || null,
-    first_name: profileById?.first_name || firstName,
-    last_name: profileById?.last_name || lastName,
-    avatar_url: avatarUrl || profileById?.avatar_url || null,
-  }
+  return profile
 }
 
 export async function signInWithGoogle() {
@@ -215,6 +189,7 @@ export async function updateProfile(
     throw new Error(profileError.message)
   }
 
+  revalidatePath('/', 'layout')
 }
 
 export async function updatePassword(currentPassword: string, newPassword: string) {
@@ -290,6 +265,7 @@ export async function uploadAvatar(formData: FormData) {
     throw new Error(profileError.message)
   }
 
+  revalidatePath('/', 'layout')
   return publicUrl.publicUrl
 }
 
@@ -320,28 +296,23 @@ export async function createGeneration(formData: FormData) {
     throw new Error('Add a caption prompt between 5 and 500 characters.')
   }
 
-  if (communityId && typeof communityId === 'string') {
-    const { data: membership, error: membershipError } = await supabase
-      .from('community_members')
-      .select('community_id')
-      .eq('community_id', communityId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (membershipError) {
-      throw new Error(membershipError.message)
+  if (typeof communityId !== 'string' || !communityId) {
+    throw new Error('Choose a community for your post.')
+  }
+  const { data: community, error: communityError } = await supabase.from('communities')
+    .select('id, visibility, created_by').eq('id', communityId).maybeSingle()
+  if (communityError) throw new Error(communityError.message)
+  if (!community) throw new Error('Community not found.')
+  const { data: membership, error: membershipError } = await supabase.from('community_members')
+    .select('community_id').eq('community_id', communityId).eq('user_id', user.id).maybeSingle()
+  if (membershipError) throw new Error(membershipError.message)
+  if (!membership && community.created_by !== user.id) {
+    if (community.visibility === 'private') {
+      throw new Error('The owner must approve your request before you can post in this private community.')
     }
-
-    if (!membership) {
-      const { error: joinError } = await supabase
-        .from('community_members')
-        .insert({ community_id: communityId, user_id: user.id })
-
-      if (joinError && joinError.code !== '23505') {
-        throw new Error(joinError.message)
-      }
-    }
-
+    const { error: joinError } = await supabase.from('community_members')
+      .insert({ community_id: communityId, user_id: user.id })
+    if (joinError && joinError.code !== '23505') throw new Error(joinError.message)
   }
 
   const apiKey = process.env.GEMINI_API_KEY
@@ -438,6 +409,10 @@ Return only one complete sentence between 8 and 20 words. Do not use bullets, la
   }
 
   revalidatePath('/home')
+  revalidatePath('/home/my-posts')
+  if (typeof communityId === 'string' && communityId) {
+    revalidatePath(`/home/community/${communityId}`)
+  }
 }
 
 export async function getCommunities() {
@@ -448,14 +423,20 @@ export async function getCommunities() {
 
   const { data, error } = await supabase
     .from('communities')
-    .select('id, name')
+    .select('id, name, description, visibility, created_by, created_at')
     .order('name')
 
   if (error) {
     throw new Error(error.message)
   }
 
-  return data ?? []
+  const { data: memberships, error: membershipError } = await supabase.from('community_members')
+    .select('community_id').eq('user_id', user.id)
+  if (membershipError) throw new Error(membershipError.message)
+  return (data ?? []).map((community) => ({
+    ...community,
+    is_member: community.created_by === user.id || (memberships ?? []).some((member) => member.community_id === community.id),
+  })) as Community[]
 }
 
 export async function getProfileCards(userIds: string[]) {
@@ -475,7 +456,7 @@ export async function getProfileCards(userIds: string[]) {
   return Object.fromEntries((data ?? []).map((profile) => [profile.id, profile]))
 }
 
-export async function createCommunity(name: string) {
+export async function createCommunity(name: string, description: string, visibility: 'public' | 'private') {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -483,14 +464,11 @@ export async function createCommunity(name: string) {
     throw new Error('You must be signed in to create a community.')
   }
 
-  const normalizedName = name.trim().replace(/\s+/g, ' ')
-  if (normalizedName.length < 2 || normalizedName.length > 50) {
-    throw new Error('Community names must be between 2 and 50 characters.')
-  }
+  const values = validateCommunity(name, description, visibility)
 
   const { data: community, error: communityError } = await supabase
     .from('communities')
-    .insert({ name: normalizedName, created_by: user.id })
+    .insert({ ...values, created_by: user.id })
     .select('id, name')
     .single()
 
@@ -498,14 +476,6 @@ export async function createCommunity(name: string) {
     throw new Error(communityError.code === '23505'
       ? 'That community already exists.'
       : communityError.message)
-  }
-
-  const { error: membershipError } = await supabase
-    .from('community_members')
-    .insert({ community_id: community.id, user_id: user.id })
-
-  if (membershipError) {
-    throw new Error(membershipError.message)
   }
 
   revalidatePath('/home')
@@ -532,6 +502,7 @@ export async function voteOnGeneration(generationId: string, vote: 1 | -1) {
   }
 
   revalidatePath('/home')
+  revalidatePath(`/home/post/${generationId}`)
 }
 
 export async function deleteGeneration(generationId: string) {
@@ -581,4 +552,59 @@ export async function deleteGeneration(generationId: string) {
   }
 
   revalidatePath('/home')
+  revalidatePath(`/home/post/${generationId}`)
+}
+
+export async function joinCommunity(communityId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sign in to join a community.')
+  const { data: community, error } = await supabase.from('communities')
+    .select('visibility').eq('id', communityId).single()
+  if (error) throw new Error(error.message)
+  const table = community.visibility === 'private' ? 'community_join_requests' : 'community_members'
+  const { error: joinError } = await supabase.from(table).insert({ community_id: communityId, user_id: user.id })
+  if (joinError && joinError.code !== '23505') throw new Error(joinError.message)
+  revalidatePath('/home', 'layout')
+}
+
+export async function reviewCommunityRequest(communityId: string, userId: string, approve: boolean) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sign in to review requests.')
+  if (typeof approve !== 'boolean') throw new Error('Choose approve or decline.')
+  const { error } = await supabase.rpc('review_community_request', {
+    target_community: communityId, target_user: userId, approve,
+  })
+  if (error) throw new Error(error.message)
+  revalidatePath('/home', 'layout')
+}
+
+export async function addComment(generationId: string, body: string) {
+  if (!isPostId(generationId)) throw new Error('Post not found.')
+  const text = validateComment(body)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sign in to comment.')
+  const { data: post, error: postError } = await supabase.from('ai_generations')
+    .select('id').eq('id', generationId).maybeSingle()
+  if (postError) throw new Error(postError.message)
+  if (!post) throw new Error('This post is unavailable or you do not have access to it.')
+  await getUserProfile(user)
+  const { error } = await supabase.from('generation_comments')
+    .insert({ generation_id: generationId, user_id: user.id, body: text })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/home/post/${generationId}`)
+}
+
+export async function deleteComment(generationId: string, commentId: string) {
+  if (!isPostId(generationId) || !isPostId(commentId)) throw new Error('Comment not found.')
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sign in to delete a comment.')
+  const { data, error } = await supabase.from('generation_comments').delete()
+    .eq('id', commentId).eq('generation_id', generationId).eq('user_id', user.id).select('id')
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Comment not found or you do not own it.')
+  revalidatePath(`/home/post/${generationId}`)
 }

@@ -1,15 +1,10 @@
+import Link from 'next/link'
+import { buildExploreFeed } from '../utils/explore-feed'
 import { redirect } from 'next/navigation'
 import { createClient, getCommunities, getProfileCards, getUserProfile } from '../utils/server'
 import HomeNav from './home-nav'
 import CommunitySidebar from './community-sidebar'
 import HomeWorkspace, { type Generation } from './home-workspace'
-
-interface Profile {
-  first_name: string | null
-  last_name: string | null
-  email: string | null
-  avatar_url: string | null
-}
 
 interface Vote {
   generation_id: string
@@ -26,30 +21,27 @@ export default async function HomePage() {
   }
 
   const profile = await getUserProfile(user)
-  const displayName = [profile?.first_name, profile?.last_name]
-    .filter(Boolean)
-    .join(' ') || user.user_metadata?.full_name || user.email || 'there'
-
   const communities = await getCommunities()
-  const randomCommunity = communities.find((community) => community.name.toLowerCase() === 'random')
+  const publicCommunities = communities.filter((community) => community.visibility === 'public')
+  const publicCommunityIds = publicCommunities.map((community) => community.id)
+  const { data: generationRows, error: generationError } = publicCommunityIds.length > 0
+    ? await supabase.from('ai_generations')
+      .select('id, image_path, prompt, caption, created_at, user_id, community_id')
+      .in('community_id', publicCommunityIds)
+      .order('created_at', { ascending: false })
+      .limit(500) as { data: Generation[] | null; error: { message: string } | null }
+    : { data: [], error: null }
+  if (generationError) throw new Error(generationError.message)
+  const selectedPosts = buildExploreFeed(generationRows ?? [], publicCommunityIds)
+  const generationIds = selectedPosts.map((post) => post.id)
+  const { data: votes, error: votesError } = generationIds.length > 0
+    ? await supabase.from('generation_votes')
+      .select('generation_id, user_id, vote').in('generation_id', generationIds) as { data: Vote[] | null; error: { message: string } | null }
+    : { data: [], error: null }
+  if (votesError) throw new Error(votesError.message)
+  const profileCards = await getProfileCards(selectedPosts.map((generation) => generation.user_id))
 
-  let generationQuery = supabase
-    .from('ai_generations')
-    .select('id, image_path, prompt, caption, created_at, user_id, community_id')
-    .order('created_at', { ascending: false })
-
-  if (randomCommunity) {
-    generationQuery = generationQuery.eq('community_id', randomCommunity.id)
-  }
-
-  const { data: generationRows } = await generationQuery.limit(100) as { data: Generation[] | null }
-
-  const { data: votes } = await supabase
-    .from('generation_votes')
-    .select('generation_id, user_id, vote') as { data: Vote[] | null }
-  const profileCards = await getProfileCards((generationRows ?? []).map((generation) => generation.user_id))
-
-  const generations = await Promise.all((generationRows ?? []).map(async (generation) => {
+  const generations = await Promise.all(selectedPosts.map(async (generation) => {
     const { data } = await supabase.storage
       .from('generated-media')
       .createSignedUrl(generation.image_path, 60 * 60)
@@ -68,21 +60,36 @@ export default async function HomePage() {
   }))
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-background">
       <HomeNav profile={profile} active="home" />
       <div className="grid w-full gap-8 pt-0 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <CommunitySidebar communities={communities} activeCommunityId={randomCommunity?.id} />
-        <section className="mx-auto w-full max-w-5xl min-w-0 px-5 pt-8 sm:px-8 sm:pt-12 lg:mx-0 lg:px-0 lg:pr-8">
-        <div className="w-full">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-600">Rate My Captions</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
-            Vote and generate new captions with AI.
-          </h1>
-          <p className="mt-4 text-base leading-7 text-slate-600">
-            Welcome, {displayName}. Upload an image, ask Gemini for a caption, and let the community decide if it lands.
-          </p>
-        </div>
-          <HomeWorkspace generations={generations} userId={user.id} communities={communities} communityId={randomCommunity?.id ?? null} sectionTitle="Random" />
+        <CommunitySidebar communities={communities} />
+        <section className="mx-auto w-full max-w-6xl min-w-0 px-5 py-8 sm:px-8 lg:mx-0 lg:pl-0 lg:pr-8">
+          <header className="mb-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-melon-green-dark">A fresh slice of your community</p>
+            <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-melon-heading">Melon</h1>
+            <p className="mt-2 text-sm leading-6 text-melon-muted">Fresh perspectives from public communities. Discover a caption, find your people.</p>
+          </header>
+          <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="min-w-0">
+              <HomeWorkspace generations={generations} userId={user.id} communities={publicCommunities} sectionTitle="Explore" eyebrow="Public community posts" emptyMessage="No public posts yet. Create a post in a public community to start the conversation." initialPostView="vertical" allowShuffle />
+            </div>
+            <aside className="hidden rounded-2xl border border-melon-border border-t-4 border-t-melon-pink bg-melon-blush p-5 xl:block" aria-labelledby="discover-heading">
+              <h2 id="discover-heading" className="text-xs font-bold uppercase tracking-wider text-melon-heading">Discover communities</h2>
+              <p className="mt-3 text-sm leading-6 text-melon-muted">Find your next favorite corner of the community.</p>
+              <nav className="mt-4 divide-y divide-melon-cream" aria-label="Discover public communities">
+                {publicCommunities.slice(0, 6).map((community) => (
+                  <div key={community.id}>
+                    <Link href={`/home/community/${community.id}`} className="group flex items-start gap-3 rounded-lg px-3 py-4 transition hover:bg-melon-pink">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-melon-yellow text-sm font-bold text-melon-forest" aria-hidden="true">{community.name.slice(0, 1).toUpperCase()}</span>
+                      <span className="min-w-0"><span className="block truncate text-sm font-bold text-melon-forest group-hover:text-melon-yellow">{community.name}</span><span className="mt-1 line-clamp-2 block text-xs leading-5 text-melon-muted group-hover:text-melon-yellow">{community.description || 'Explore posts and share your own captions.'}</span></span>
+                    </Link>
+                  </div>
+                ))}
+              </nav>
+              {publicCommunities.length === 0 && <p className="mt-4 text-sm text-melon-muted">New public communities will appear here.</p>}
+            </aside>
+          </div>
         </section>
       </div>
     </main>

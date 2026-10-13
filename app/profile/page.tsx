@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import Avatar from '../avatar'
 import { redirect } from 'next/navigation'
 import { createClient, getCommunities, getUserProfile } from '../utils/server'
 import HomeNav from '../home/home-nav'
+import CommunitySidebar from '../home/community-sidebar'
 import ProfileFeed from './profile-feed'
 
 interface GenerationRow {
@@ -94,38 +96,32 @@ export default async function ProfilePage() {
     .map((vote) => decoratedById.get(vote.generation_id))
     .filter((post) => post !== undefined)
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || 'Your profile'
-  const initials = [profile.first_name, profile.last_name]
-    .filter(Boolean)
-    .map((name) => name?.[0])
-    .join('')
-    .toUpperCase() || '?'
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <HomeNav profile={profile} active="home" />
-      <section className="bg-slate-950 px-5 py-10 text-white sm:px-8 sm:py-14">
-        <div className="mx-auto flex w-full max-w-5xl items-center gap-5">
-          {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt={`${fullName} profile`} className="h-24 w-24 rounded-full border-4 border-slate-800 object-cover sm:h-28 sm:w-28" />
-          ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-slate-800 bg-teal-400 text-3xl font-bold text-slate-950 sm:h-28 sm:w-28" aria-label="Profile initials">
-              {initials}
+    <main className="min-h-screen bg-background">
+      <HomeNav profile={profile} active={null} />
+      <div className="grid w-full gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <CommunitySidebar communities={communities} />
+        <div className="min-w-0 px-5 pt-4 pb-12 lg:pr-8">
+          <section className="mx-auto max-w-6xl rounded-2xl bg-linear-to-r from-melon-pink via-melon-yellow to-melon-green px-5 py-10 text-melon-forest sm:px-8 sm:py-14">
+            <div className="mx-auto flex w-full max-w-5xl items-center gap-5">
+              <Avatar src={profile.avatar_url} name={[profile.first_name, profile.last_name].filter(Boolean).join(' ')} className="h-24 w-24 border-4 border-white/80 text-3xl sm:h-28 sm:w-28" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-melon-forest">Profile</p>
+                <h1 className="text-melon-heading mt-1 truncate text-3xl font-bold sm:text-4xl">{fullName}</h1>
+                <p className="mt-2 truncate text-sm text-melon-ink">{profile.email ?? user.email}</p>
+              </div>
             </div>
-          )}
-          <div className="min-w-0">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-300">Profile</p>
-            <h1 className="mt-1 truncate text-3xl font-bold sm:text-4xl">{fullName}</h1>
-            <p className="mt-2 truncate text-sm text-slate-400">{profile.email ?? user.email}</p>
-          </div>
+          </section>
+          <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
+            <div className="flex items-center justify-between gap-4">
+              <Link href="/home" className="text-sm font-semibold text-melon-green-dark hover:text-melon-green-dark">Back to Melon</Link>
+              <Link href="/settings" className="text-sm font-semibold text-melon-muted hover:text-melon-forest">Edit profile</Link>
+            </div>
+            <ProfileFeed posts={profilePosts} upvoted={upvoted} downvoted={downvoted} />
+          </section>
         </div>
-      </section>
-      <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
-        <div className="flex items-center justify-between gap-4">
-          <Link href="/home" className="text-sm font-semibold text-teal-600 hover:text-teal-700">Back to workspace</Link>
-          <Link href="/settings" className="text-sm font-semibold text-slate-600 hover:text-slate-950">Edit profile</Link>
-        </div>
-        <ProfileFeed posts={profilePosts} upvoted={upvoted} downvoted={downvoted} />
-      </section>
+      </div>
     </main>
   )
 }

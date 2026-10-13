@@ -57,17 +57,17 @@ export default async function MyPostsPage() {
   }))
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <HomeNav profile={profile} active="my-posts" />
+    <main className="min-h-screen bg-background">
+      <HomeNav profile={profile} active={null} />
       <div className="grid w-full gap-8 pt-0 lg:grid-cols-[220px_minmax(0,1fr)]">
         <CommunitySidebar communities={communities} />
         <section className="mx-auto w-full max-w-5xl min-w-0 px-5 pt-8 sm:px-8 sm:pt-12 lg:mx-0 lg:px-0 lg:pr-8">
         <div className="w-full">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-600">Rate My Captions</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">My posts</h1>
-          <p className="mt-4 text-base leading-7 text-slate-600">Review the captions you have generated and see how the community rated them.</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-melon-green-dark">Melon</p>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-melon-heading sm:text-6xl">My posts</h1>
+          <p className="mt-4 text-base leading-7 text-melon-muted">Review the captions you have generated and see how the community rated them.</p>
         </div>
-          <HomeWorkspace generations={generations} userId={user.id} communities={communities} showGenerator={false} sectionTitle="Your posts" emptyMessage="You have not made any posts yet." />
+          <HomeWorkspace generations={generations} userId={user.id} communities={communities} sectionTitle="Your posts" emptyMessage="You have not made any posts yet." />
         </section>
       </div>
     </main>

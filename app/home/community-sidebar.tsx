@@ -3,12 +3,9 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import type { Community } from '../utils/community'
 import { createCommunity } from '../utils/server'
-
-interface Community {
-  id: string
-  name: string
-}
 
 export default function CommunitySidebar({
   communities,
@@ -17,9 +14,15 @@ export default function CommunitySidebar({
   communities: Community[]
   activeCommunityId?: string
 }) {
-  const randomCommunity = communities.find((community) => community.name.toLowerCase() === 'random')
+  const joinedCommunities = communities.filter((community) => community.is_member)
+  const communitySections = [
+    { label: 'Communities', communities: joinedCommunities.filter((community) => community.visibility === 'public') },
+    { label: 'Private', communities: joinedCommunities.filter((community) => community.visibility === 'private') },
+  ]
   const router = useRouter()
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [isCreating, setIsCreating] = useState(false)
   const [message, setMessage] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -46,8 +49,10 @@ export default function CommunitySidebar({
     setMessage('')
 
     try {
-      const community = await createCommunity(name)
+      const community = await createCommunity(name, description, visibility)
       setName('')
+      setDescription('')
+      setVisibility('public')
       setIsModalOpen(false)
       router.push(`/home/community/${community.id}`)
       router.refresh()
@@ -59,47 +64,48 @@ export default function CommunitySidebar({
   }
 
   return (
-    <aside className="relative z-40 h-fit border-r border-slate-200 bg-white p-4 lg:min-h-[calc(100vh-4rem)] lg:sticky lg:top-16 lg:pt-12">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-slate-700">Communities</h2>
-        <span className="text-xs text-slate-400">{communities.length}</span>
-      </div>
-      <nav className="mt-4 space-y-1" aria-label="Communities">
-        {randomCommunity && (
-          <Link
-            href={`/home/community/${randomCommunity.id}`}
-            className={`block truncate rounded-lg px-3 py-2 text-sm font-semibold transition ${activeCommunityId === randomCommunity.id ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'}`}
-          >
-            Random
-          </Link>
-        )}
-        {communities.filter((community) => community.id !== randomCommunity?.id).map((community) => (
-          <Link
-            key={community.id}
-            href={`/home/community/${community.id}`}
-            className={`block truncate rounded-lg px-3 py-2 text-sm font-semibold transition ${activeCommunityId === community.id ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'}`}
-          >
-            {community.name}
-          </Link>
-        ))}
-      </nav>
+    <aside className="relative z-40 h-fit border-r border-melon-border bg-melon-blush p-4 lg:h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:sticky lg:top-16 lg:pt-12">
+      {communitySections.map((section, index) => (
+        <section key={section.label} className={index > 0 ? 'mt-6 border-t border-melon-border pt-5' : undefined}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-melon-heading">{section.label}</h2>
+            <span className="text-xs text-melon-muted">{section.communities.length}</span>
+          </div>
+          {section.communities.length > 0 ? (
+            <nav className="mt-4 space-y-1" aria-label={section.label === 'Private' ? 'Private communities' : 'Joined communities'}>
+              {section.communities.map((community) => (
+                <Link
+                  key={community.id}
+                  href={`/home/community/${community.id}`}
+                  aria-current={activeCommunityId === community.id ? 'page' : undefined}
+                  className={`block truncate rounded-lg px-3 py-2 text-sm font-semibold transition ${activeCommunityId === community.id ? 'bg-melon-pink text-melon-yellow' : 'text-melon-muted hover:bg-melon-yellow hover:text-melon-pink'}`}
+                >
+                  {community.name.toLowerCase() === 'random' ? 'Random' : community.name}
+                </Link>
+              ))}
+            </nav>
+          ) : (
+            <p className="mt-3 text-xs leading-5 text-melon-muted">{section.label === 'Private' ? 'No private communities joined yet.' : 'Join a public community to see it here.'}</p>
+          )}
+        </section>
+      ))}
       <button
         type="button"
         onClick={() => {
           setMessage('')
           setIsModalOpen(true)
         }}
-        className="mt-5 w-full border-t border-slate-100 pt-4 text-left text-sm font-semibold text-slate-950 transition"
+        className="mt-5 w-full border-t border-melon-border pt-4 text-left text-sm font-semibold text-melon-forest transition"
       >
-        <span className="flex items-center gap-2 rounded-lg bg-teal-400 px-3 py-3 hover:bg-teal-300">
+        <span className="flex items-center gap-2 rounded-lg bg-melon-pink text-melon-yellow px-3 py-3 hover:bg-melon-yellow hover:text-melon-pink">
           <span className="text-xl font-normal leading-none" aria-hidden="true">+</span>
           Add new community
         </span>
       </button>
 
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div
-          className="fixed inset-0 z-1000 flex items-center justify-center bg-slate-950/60 px-5"
+          className="fixed inset-0 z-1000 flex items-center justify-center bg-gray-900/60 px-5"
           role="presentation"
           onClick={(event) => {
             if (event.target === event.currentTarget) setIsModalOpen(false)
@@ -110,24 +116,25 @@ export default function CommunitySidebar({
             aria-modal="true"
             aria-labelledby="new-community-title"
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 id="new-community-title" className="text-lg font-bold text-slate-950">Create a community</h3>
-                <p className="mt-1 text-sm text-slate-500">Give your new space a name.</p>
+                <h3 id="new-community-title" className="text-lg font-bold text-melon-heading">Create a community</h3>
+                <p className="mt-1 text-sm text-melon-muted">Give your new space a name.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
                 aria-label="Close create community dialog"
-                className="text-2xl leading-none text-slate-400 transition hover:text-slate-700"
+                className="text-2xl leading-none text-melon-muted transition hover:text-melon-ink"
               >
                 ×
               </button>
             </div>
             <form onSubmit={handleCreate} className="mt-5">
-              <label className="block text-sm font-semibold text-slate-700" htmlFor="new-community">Community name</label>
+              <fieldset disabled={isCreating}>
+              <label className="block text-sm font-semibold text-melon-ink" htmlFor="new-community">Community name</label>
               <input
                 id="new-community"
                 value={name}
@@ -136,28 +143,42 @@ export default function CommunitySidebar({
                 maxLength={50}
                 autoFocus
                 required
-                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                className="mt-2 w-full rounded-lg border border-melon-border px-3 py-3 text-sm text-melon-forest outline-none transition placeholder:text-melon-muted focus:border-melon-green focus:ring-2 focus:ring-melon-mint"
               />
-              {message && <p className="mt-2 text-xs text-rose-600" role="status">{message}</p>}
+              <label className="mt-5 block text-sm font-semibold text-melon-ink" htmlFor="community-description">Description</label>
+              <textarea id="community-description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} placeholder="What is your community about?" className="mt-2 min-h-24 w-full rounded-lg border border-melon-border px-3 py-3 text-sm text-melon-forest focus:border-melon-green focus:outline-none focus:ring-2 focus:ring-melon-mint" />
+              <p className="mt-1 text-right text-xs text-melon-muted">{description.length}/500</p>
+              <fieldset className="mt-5 space-y-2">
+                <legend className="mb-2 text-sm font-semibold text-melon-ink">Community type</legend>
+                {(['public', 'private'] as const).map((type) => (
+                  <label key={type} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${visibility === type ? 'border-melon-green bg-melon-mint' : 'border-melon-border'}`}>
+                    <input type="radio" name="visibility" value={type} checked={visibility === type} onChange={() => setVisibility(type)} className="mt-1 accent-melon-green" />
+                    <span><span className="block text-sm font-semibold capitalize text-melon-forest">{type}</span><span className="mt-1 block text-xs leading-5 text-melon-muted">{type === 'public' ? 'Anyone signed in can view posts and join.' : 'Only approved members can view and post. You approve join requests.'}</span></span>
+                  </label>
+                ))}
+              </fieldset>
+              {message && <p className="mt-2 text-xs text-melon-berry" role="status">{message}</p>}
               <div className="mt-5 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                  className="rounded-lg border border-melon-border px-4 py-2.5 text-sm font-semibold text-melon-muted transition hover:bg-melon-blush"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating || name.trim().length < 2}
-                  className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg bg-melon-pink px-4 py-2.5 text-sm font-semibold text-melon-yellow transition hover:bg-melon-yellow hover:text-melon-pink disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isCreating ? 'Creating...' : 'Create community'}
                 </button>
               </div>
+              </fieldset>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </aside>
   )

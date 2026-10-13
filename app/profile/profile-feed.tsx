@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 
 type ProfilePost = {
@@ -43,8 +44,8 @@ export default function ProfileFeed({
   }
 
   return (
-    <section className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <nav className="flex overflow-x-auto border-b border-slate-200 px-2 sm:px-4" aria-label="Profile content">
+    <section className="mt-8 overflow-hidden rounded-2xl border border-melon-border bg-white">
+      <nav className="flex overflow-x-auto border-b border-melon-border px-2 sm:px-4" aria-label="Profile content">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -52,7 +53,7 @@ export default function ProfileFeed({
             onClick={() => setActiveTab(tab.id)}
             aria-selected={activeTab === tab.id}
             role="tab"
-            className={`shrink-0 border-b-2 px-4 py-4 text-sm font-semibold transition ${activeTab === tab.id ? 'border-teal-500 text-slate-950' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+            className={`shrink-0 border-b-2 px-4 py-4 text-sm font-semibold transition ${activeTab === tab.id ? 'border-melon-green text-melon-forest' : 'border-transparent text-melon-muted hover:text-melon-forest'}`}
           >
             {tab.label}
           </button>
@@ -61,30 +62,30 @@ export default function ProfileFeed({
 
       {content.length === 0 ? (
         <div className="px-6 py-20 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-2xl text-slate-400" aria-hidden="true">○</div>
-          <h2 className="mt-5 text-xl font-bold text-slate-950">Nothing here yet</h2>
-          <p className="mt-2 text-sm text-slate-500">{emptyMessages[activeTab]}</p>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-melon-blush text-2xl text-melon-muted" aria-hidden="true">○</div>
+          <h2 className="mt-5 text-xl font-bold text-melon-heading">Nothing here yet</h2>
+          <p className="mt-2 text-sm text-melon-muted">{emptyMessages[activeTab]}</p>
         </div>
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-melon-border">
           {content.map((post) => (
-            <article key={post.id} className="flex gap-4 p-5 transition hover:bg-slate-50 sm:p-6">
-              <div className="flex w-10 shrink-0 flex-col items-center gap-1 pt-1 text-xs font-semibold text-slate-500">
-                <span className={post.vote === 1 ? 'text-teal-600' : ''} aria-label={`${post.likes_count} upvotes`}>▲</span>
+            <article key={post.id} className="relative flex gap-4 p-5 transition hover:bg-melon-cream sm:p-6">
+              <div className="flex w-10 shrink-0 flex-col items-center gap-1 pt-1 text-xs font-semibold text-melon-muted">
+                <span className={post.vote === 1 ? 'text-melon-green-dark' : ''} aria-label={`${post.likes_count} upvotes`}>▲</span>
                 <span>{post.likes_count}</span>
-                <span className={post.vote === -1 ? 'text-rose-600' : ''} aria-label="Downvote">▼</span>
+                <span className={post.vote === -1 ? 'text-melon-berry' : ''} aria-label="Downvote">▼</span>
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-                  <span className="font-semibold text-slate-700">{post.community_name ?? 'Community post'}</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-melon-muted">
+                  <span className="font-semibold text-melon-ink">{post.community_name ?? 'Community post'}</span>
                   <span aria-hidden="true">•</span>
                   <span>{formatDate(post.created_at)}</span>
-                  {post.vote === 1 && <span className="text-teal-600">• Upvoted</span>}
-                  {post.vote === -1 && <span className="text-rose-600">• Downvoted</span>}
+                  {post.vote === 1 && <span className="text-melon-green-dark">• Upvoted</span>}
+                  {post.vote === -1 && <span className="text-melon-berry">• Downvoted</span>}
                 </div>
-                <h2 className="mt-2 text-lg font-bold leading-7 text-slate-950">{post.caption}</h2>
-                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">Prompt: {post.prompt}</p>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{post.likes_count} {post.likes_count === 1 ? 'upvote' : 'upvotes'}</p>
+                <h2 className="mt-2 text-lg font-bold leading-7 text-melon-ink"><Link href={`/home/post/${post.id}`} className="text-melon-ink"><span className="absolute inset-0" aria-hidden="true" />{post.caption}</Link></h2>
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-melon-muted">Prompt: {post.prompt}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-melon-muted">{post.likes_count} {post.likes_count === 1 ? 'upvote' : 'upvotes'} · View comments</p>
               </div>
               {post.image_url && (
                 <img src={post.image_url} alt="" className="h-20 w-20 shrink-0 rounded-xl object-cover sm:h-24 sm:w-24" />

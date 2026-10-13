@@ -52,13 +52,13 @@ export default function SignInForm() {
 
   return (
     <div className="mt-8">
-      <div className="grid grid-cols-2 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Authentication options">
+      <div className="grid grid-cols-2 rounded-lg bg-melon-blush p-1" role="tablist" aria-label="Authentication options">
         <button
           type="button"
           role="tab"
           aria-selected={mode === 'sign-in'}
           onClick={() => switchMode('sign-in')}
-          className={`rounded-md px-4 py-2.5 text-sm font-semibold transition ${mode === 'sign-in' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`rounded-md px-4 py-2.5 text-sm font-semibold transition ${mode === 'sign-in' ? 'bg-white text-melon-forest shadow-sm' : 'text-melon-muted hover:text-melon-ink'}`}
         >
           Sign in
         </button>
@@ -67,7 +67,7 @@ export default function SignInForm() {
           role="tab"
           aria-selected={mode === 'sign-up'}
           onClick={() => switchMode('sign-up')}
-          className={`rounded-md px-4 py-2.5 text-sm font-semibold transition ${mode === 'sign-up' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`rounded-md px-4 py-2.5 text-sm font-semibold transition ${mode === 'sign-up' ? 'bg-white text-melon-forest shadow-sm' : 'text-melon-muted hover:text-melon-ink'}`}
         >
           Sign up
         </button>
@@ -76,7 +76,7 @@ export default function SignInForm() {
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         {mode === 'sign-up' && (
           <div className="grid grid-cols-2 gap-3">
-            <label className="space-y-2 text-sm font-medium text-slate-700">
+            <label className="space-y-2 text-sm font-medium text-melon-ink">
               <span>First name</span>
               <input
                 type="text"
@@ -84,10 +84,10 @@ export default function SignInForm() {
                 onChange={(event) => setFirstName(event.target.value)}
                 autoComplete="given-name"
                 required
-                className="w-full rounded-lg border border-slate-200 px-3 py-3 text-slate-950 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                className="w-full rounded-lg border border-melon-border px-3 py-3 text-melon-forest outline-none transition focus:border-melon-green focus:ring-2 focus:ring-melon-mint"
               />
             </label>
-            <label className="space-y-2 text-sm font-medium text-slate-700">
+            <label className="space-y-2 text-sm font-medium text-melon-ink">
               <span>Last name</span>
               <input
                 type="text"
@@ -95,13 +95,13 @@ export default function SignInForm() {
                 onChange={(event) => setLastName(event.target.value)}
                 autoComplete="family-name"
                 required
-                className="w-full rounded-lg border border-slate-200 px-3 py-3 text-slate-950 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                className="w-full rounded-lg border border-melon-border px-3 py-3 text-melon-forest outline-none transition focus:border-melon-green focus:ring-2 focus:ring-melon-mint"
               />
             </label>
           </div>
         )}
 
-        <label className="block space-y-2 text-sm font-medium text-slate-700">
+        <label className="block space-y-2 text-sm font-medium text-melon-ink">
           <span>Email address</span>
           <input
             type="email"
@@ -109,11 +109,11 @@ export default function SignInForm() {
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
             required
-            className="w-full rounded-lg border border-slate-200 px-3 py-3 text-slate-950 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+            className="w-full rounded-lg border border-melon-border px-3 py-3 text-melon-forest outline-none transition focus:border-melon-green focus:ring-2 focus:ring-melon-mint"
           />
         </label>
 
-        <label className="block space-y-2 text-sm font-medium text-slate-700">
+        <label className="block space-y-2 text-sm font-medium text-melon-ink">
           <span>Password</span>
           <input
             type="password"
@@ -122,35 +122,35 @@ export default function SignInForm() {
             autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
             minLength={6}
             required
-            className="w-full rounded-lg border border-slate-200 px-3 py-3 text-slate-950 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+            className="w-full rounded-lg border border-melon-border px-3 py-3 text-melon-forest outline-none transition focus:border-melon-green focus:ring-2 focus:ring-melon-mint"
           />
         </label>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-lg bg-melon-pink px-4 py-3 text-sm font-semibold text-melon-yellow transition hover:bg-melon-yellow hover:text-melon-pink disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? 'Please wait...' : mode === 'sign-in' ? 'Sign in' : 'Create account'}
         </button>
       </form>
 
-      <div className="my-6 flex items-center gap-3 text-xs text-slate-400">
-        <span className="h-px flex-1 bg-slate-200" />
+      <div className="my-6 flex items-center gap-3 text-xs text-melon-muted">
+        <span className="h-px flex-1 bg-melon-border" />
         <span>OR</span>
-        <span className="h-px flex-1 bg-slate-200" />
+        <span className="h-px flex-1 bg-melon-border" />
       </div>
 
       <button
         type="button"
         onClick={handleGoogleSignIn}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        className="flex w-full items-center justify-center gap-2 rounded-lg border border-melon-border px-4 py-3 text-sm font-semibold text-melon-ink transition hover:bg-melon-cream"
       >
         <span className="text-base font-bold text-blue-500" aria-hidden="true">G</span>
         Continue with Google
       </button>
 
-      {message && <p className="mt-4 text-center text-sm text-slate-600">{message}</p>}
+      {message && <p className="mt-4 text-center text-sm text-melon-muted">{message}</p>}
     </div>
   )
 }

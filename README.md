@@ -1,6 +1,6 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Rate My Captions setup
+## Melon setup
 
 The signed-in `/home` route lets users upload an image, ask Gemini for a caption, and upvote or downvote captions. Before using it:
 
@@ -8,7 +8,15 @@ The signed-in `/home` route lets users upload an image, ask Gemini for a caption
 2. The original generation, vote, storage, and RLS setup should already be applied in Supabase from the previous setup.
 3. Run `supabase/communities.sql` in the Supabase SQL editor. It adds communities, memberships, the `community_id` generation relationship, and the related RLS policies.
 4. Run `supabase/profile-cards.sql` in the Supabase SQL editor to safely expose post author names and profile photos and allow Google profile synchronization.
-4. Make sure the Supabase Auth providers and redirect URL from the previous assignment are still configured.
+5. Run `supabase/community-privacy.sql` in the Supabase SQL editor after the community and profile-card scripts. This adds descriptions, public/private visibility, owner membership, join requests, atomic owner approvals, and RLS protection for private posts, votes, and generated images. Existing communities remain public.
+6. Run `supabase/post-comments.sql` after the privacy migration to enable comments on dedicated post pages.
+7. Make sure the Supabase Auth providers and redirect URL from the previous assignment are still configured.
+
+Private communities are discoverable by name and description. Only the owner and approved members can see their posts or post there. The owner reviews requests on the community page. Declined requests remain declined. Apply the migration before running this version of the app.
+
+Run application regression checks with `node --test tests/*.test.mjs`. The SQL access-control regressions are `tests/community-privacy.sql` and `tests/post-comments.sql`; run it against a disposable PostgreSQL database with Supabase auth/storage schemas and the migrations applied. Both roll their fixtures back.
+
+Posts open at `/home/post/[id]` from Melon, communities, and profile tabs. Signed-in users can comment on public posts; private threads require approved membership. Comments appear newest first in pages of 50. Authors can delete their own comments.
 
 The Gemini request stays on the server, and the API key is never exposed to the browser. Generated images use signed URLs and are only readable by authenticated users.
 
