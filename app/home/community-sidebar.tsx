@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Community } from '../utils/community'
@@ -20,6 +20,7 @@ export default function CommunitySidebar({
     { label: 'Private', communities: joinedCommunities.filter((community) => community.visibility === 'private') },
   ]
   const router = useRouter()
+  const pathname = usePathname()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
@@ -64,11 +65,36 @@ export default function CommunitySidebar({
   }
 
   return (
-    <aside className="relative z-40 h-fit border-r border-melon-border bg-melon-blush p-4 lg:h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:sticky lg:top-16 lg:pt-12">
-      {communitySections.map((section, index) => (
-        <section key={section.label} className={index > 0 ? 'mt-6 border-t border-melon-border pt-5' : undefined}>
+    <aside className="relative z-40 h-fit bg-melon-blush p-4 lg:h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:sticky lg:top-16 lg:pt-12">
+      <nav className="space-y-1" aria-label="Browse Melon">
+        {[{ label: 'Home', href: '/home' }, { label: 'Explore', href: '/home/explore' }].map((item) => (
+          <Link key={item.href} href={item.href} aria-current={pathname === item.href ? 'page' : undefined} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${pathname === item.href ? 'bg-melon-pink text-melon-yellow' : 'text-melon-ink hover:bg-melon-yellow hover:text-melon-pink'}`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0" aria-hidden="true">
+              {item.label === 'Home' ? (
+                <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z" />
+              ) : (
+                <><circle cx="12" cy="12" r="9" /><path d="m16 8-2.5 5.5L8 16l2.5-5.5L16 8Z" /></>
+              )}
+            </svg>
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+      <button
+        type="button"
+        onClick={() => {
+          setMessage('')
+          setIsModalOpen(true)
+        }}
+        className="mt-1 flex w-full items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-melon-ink transition hover:bg-melon-yellow hover:text-melon-pink"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-5 w-5 shrink-0" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        Add new community
+      </button>
+      {communitySections.map((section) => (
+        <section key={section.label} className="mt-6 border-t border-melon-yellow pt-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-melon-heading">{section.label}</h2>
+            <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-melon-pink">{section.label}</h2>
             <span className="text-xs text-melon-muted">{section.communities.length}</span>
           </div>
           {section.communities.length > 0 ? (
@@ -89,19 +115,7 @@ export default function CommunitySidebar({
           )}
         </section>
       ))}
-      <button
-        type="button"
-        onClick={() => {
-          setMessage('')
-          setIsModalOpen(true)
-        }}
-        className="mt-5 w-full border-t border-melon-border pt-4 text-left text-sm font-semibold text-melon-forest transition"
-      >
-        <span className="flex items-center gap-2 rounded-lg bg-melon-pink text-melon-yellow px-3 py-3 hover:bg-melon-yellow hover:text-melon-pink">
-          <span className="text-xl font-normal leading-none" aria-hidden="true">+</span>
-          Add new community
-        </span>
-      </button>
+
 
       {isModalOpen && createPortal(
         <div

@@ -100,7 +100,7 @@ export default async function ProfilePage() {
   return (
     <main className="min-h-screen bg-background">
       <HomeNav profile={profile} active={null} />
-      <div className="grid w-full gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid w-full gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         <CommunitySidebar communities={communities} />
         <div className="min-w-0 px-5 pt-4 pb-12 lg:pr-8">
           <section className="mx-auto max-w-6xl rounded-2xl bg-linear-to-r from-melon-pink via-melon-yellow to-melon-green px-5 py-10 text-melon-forest sm:px-8 sm:py-14">

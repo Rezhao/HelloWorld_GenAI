@@ -62,7 +62,7 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-background">
       <HomeNav profile={profile} active="home" />
-      <div className="grid w-full gap-8 pt-0 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid w-full gap-8 pt-0 lg:grid-cols-[260px_minmax(0,1fr)]">
         <CommunitySidebar communities={communities} />
         <section className="mx-auto w-full max-w-6xl min-w-0 px-5 py-8 sm:px-8 lg:mx-0 lg:pl-0 lg:pr-8">
           <header className="mb-8">
@@ -75,7 +75,7 @@ export default async function HomePage() {
               <HomeWorkspace generations={generations} userId={user.id} communities={publicCommunities} sectionTitle="Explore" eyebrow="Public community posts" emptyMessage="No public posts yet. Create a post in a public community to start the conversation." initialPostView="vertical" allowShuffle />
             </div>
             <aside className="hidden rounded-2xl border border-melon-border border-t-4 border-t-melon-pink bg-melon-blush p-5 xl:block" aria-labelledby="discover-heading">
-              <h2 id="discover-heading" className="text-xs font-bold uppercase tracking-wider text-melon-heading">Discover communities</h2>
+              <h2 id="discover-heading" className="text-xs font-bold uppercase tracking-wider text-melon-pink">Discover communities</h2>
               <p className="mt-3 text-sm leading-6 text-melon-muted">Find your next favorite corner of the community.</p>
               <nav className="mt-4 divide-y divide-melon-cream" aria-label="Discover public communities">
                 {publicCommunities.slice(0, 6).map((community) => (

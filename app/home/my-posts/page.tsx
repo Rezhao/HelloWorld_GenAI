@@ -59,7 +59,7 @@ export default async function MyPostsPage() {
   return (
     <main className="min-h-screen bg-background">
       <HomeNav profile={profile} active={null} />
-      <div className="grid w-full gap-8 pt-0 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid w-full gap-8 pt-0 lg:grid-cols-[260px_minmax(0,1fr)]">
         <CommunitySidebar communities={communities} />
         <section className="mx-auto w-full max-w-5xl min-w-0 px-5 pt-8 sm:px-8 sm:pt-12 lg:mx-0 lg:px-0 lg:pr-8">
         <div className="w-full">

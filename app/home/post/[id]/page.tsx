@@ -65,7 +65,7 @@ export default async function PostPage({ params, searchParams }: {
   return (
     <main className="min-h-screen bg-background">
       <HomeNav profile={profile} active={null} />
-      <div className="grid w-full gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid w-full gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         <CommunitySidebar communities={communities} activeCommunityId={community?.id} />
         <div className="mx-auto w-full max-w-3xl min-w-0 px-5 py-8 sm:px-8 lg:mx-0 lg:pl-0">
           <Link href={community ? `/home/community/${community.id}` : '/home'} className="mb-5 inline-block text-sm font-semibold text-melon-muted transition hover:text-melon-green-dark">← {community ? `Back to ${community.name}` : 'Back to Melon'}</Link>

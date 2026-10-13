@@ -76,7 +76,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ id: 
   return (
     <main className="min-h-screen bg-background">
       <HomeNav profile={profile} active="home" />
-      <div className="grid w-full gap-8 pt-0 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid w-full gap-8 pt-0 lg:grid-cols-[260px_minmax(0,1fr)]">
         <CommunitySidebar communities={communities} activeCommunityId={id} />
         <section className="min-w-0 pb-12 lg:pr-8">
           <div className="mx-5 mt-4 h-32 rounded-2xl bg-linear-to-r from-melon-pink via-melon-yellow to-melon-green sm:h-44" aria-hidden="true" />
