@@ -4,8 +4,7 @@ import { useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Avatar from './avatar'
 import HeaderBanner from './header-banner'
-import { updateAppearance } from './utils/server'
-import { preparePhoto } from './utils/prepare-photo'
+import { saveAppearancePhoto } from './utils/save-photo'
 
 export default function AppearanceEditor({ communityId, name = 'Your profile', avatarUrl, bannerUrl }: {
   communityId?: string; name?: string; avatarUrl?: string | null; bannerUrl?: string | null
@@ -20,12 +19,7 @@ export default function AppearanceEditor({ communityId, name = 'Your profile', a
     if (!file && !remove) return
     setBusy(kind); setError(''); setMessage('')
     try {
-      const form = new FormData()
-      form.set('target', communityId ? 'community' : 'profile'); form.set('kind', kind)
-      if (communityId) form.set('communityId', communityId)
-      if (remove) form.set('remove', 'true')
-      else if (file) form.set('image', await preparePhoto(file, kind))
-      const result = await updateAppearance(form)
+      const result = await saveAppearancePhoto(kind, file, remove, communityId)
       setPhotos((current) => ({ ...current, [kind]: result.url }))
       setMessage(result.warning || (remove ? 'Photo removed. The default appearance has been restored.' : 'Photo saved.'))
       router.refresh()
