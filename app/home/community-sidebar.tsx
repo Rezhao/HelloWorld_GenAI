@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Community } from '../utils/community'
 import { createCommunity } from '../utils/server'
+import { useMobileNavigation } from '../mobile-navigation'
 
 export default function CommunitySidebar({
   communities,
@@ -19,6 +20,8 @@ export default function CommunitySidebar({
     { label: 'Communities', communities: joinedCommunities.filter((community) => community.visibility === 'public') },
     { label: 'Private', communities: joinedCommunities.filter((community) => community.visibility === 'private') },
   ]
+  const { isOpen, closeMenu } = useMobileNavigation()
+  const drawer = useRef<HTMLDialogElement>(null)
   const router = useRouter()
   const pathname = usePathname()
   const [name, setName] = useState('')
@@ -27,6 +30,23 @@ export default function CommunitySidebar({
   const [isCreating, setIsCreating] = useState(false)
   const [message, setMessage] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  useEffect(() => {
+    const dialog = drawer.current
+    if (!dialog) return
+    if (isOpen && !window.matchMedia('(min-width: 1024px)').matches) {
+      if (!dialog.open) dialog.showModal()
+    } else if (dialog.open) dialog.close()
+  }, [isOpen])
+
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 1024px)')
+    function resize() {
+      if (desktop.matches) { drawer.current?.close(); closeMenu() }
+    }
+    desktop.addEventListener('change', resize)
+    return () => desktop.removeEventListener('change', resize)
+  }, [closeMenu])
 
   useEffect(() => {
     if (!isModalOpen) return
@@ -64,8 +84,8 @@ export default function CommunitySidebar({
     }
   }
 
-  return (
-    <aside className="relative z-40 h-fit bg-melon-blush p-4 lg:h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:sticky lg:top-16 lg:pt-12">
+  const menuContent = (
+    <>
       <nav className="space-y-1" aria-label="Browse Melon">
         {[{ label: 'Home', href: '/home' }, { label: 'Explore', href: '/home/explore' }].map((item) => (
           <Link key={item.href} href={item.href} aria-current={pathname === item.href ? 'page' : undefined} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${pathname === item.href ? 'bg-melon-pink text-melon-yellow' : 'text-melon-ink hover:bg-melon-yellow hover:text-melon-pink'}`}>
@@ -83,6 +103,8 @@ export default function CommunitySidebar({
       <button
         type="button"
         onClick={() => {
+          drawer.current?.close()
+          closeMenu()
           setMessage('')
           setIsModalOpen(true)
         }}
@@ -115,8 +137,30 @@ export default function CommunitySidebar({
           )}
         </section>
       ))}
+    </>
+  )
 
-
+  return (
+    <>
+      <aside className="relative z-40 hidden h-fit bg-melon-blush p-4 lg:sticky lg:top-16 lg:block lg:h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:pt-12">
+        {menuContent}
+      </aside>
+      <dialog ref={drawer} id="mobile-community-menu" aria-modal="true" aria-labelledby="mobile-menu-heading" onClose={closeMenu}
+        onClick={(event) => {
+          if (event.target instanceof Element && event.target.closest('a[href]')) { drawer.current?.close(); return }
+          if (event.target !== event.currentTarget) return
+          const bounds = event.currentTarget.getBoundingClientRect()
+          if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) drawer.current?.close()
+        }}
+        className="fixed inset-y-0 left-0 right-auto m-0 h-dvh max-h-none w-[min(20rem,85vw)] max-w-none overflow-y-auto border-0 bg-melon-blush p-4 text-melon-ink backdrop:bg-gray-900/60 lg:hidden">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 id="mobile-menu-heading" className="text-lg font-bold text-melon-pink">Menu</h2>
+          <button type="button" onClick={() => drawer.current?.close()} aria-label="Close navigation menu" className="flex h-10 w-10 items-center justify-center rounded-lg text-melon-heading hover:bg-melon-yellow hover:text-melon-pink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-5 w-5" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+        {menuContent}
+      </dialog>
       {isModalOpen && createPortal(
         <div
           className="fixed inset-0 z-1000 flex items-center justify-center bg-gray-900/60 px-5"
@@ -194,6 +238,6 @@ export default function CommunitySidebar({
         </div>,
         document.body
       )}
-    </aside>
+    </>
   )
 }

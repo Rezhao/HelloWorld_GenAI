@@ -43,3 +43,8 @@ body {
   background: var(--color-melon-pink);
   color: var(--color-melon-forest);
 }
+
+/* The native mobile dialog traps focus; keep the underlying feed stationary. */
+body:has(#mobile-community-menu[open]) {
+  overflow: hidden;
+}
