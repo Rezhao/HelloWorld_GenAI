@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import type { Community } from '../../utils/community'
 import { MembershipControl } from '../community/community-controls'
+import Avatar from '../../avatar'
 
 export default function CommunityDirectory({ communities, userId, requestStatuses }: {
   communities: Community[]
@@ -35,7 +36,7 @@ export default function CommunityDirectory({ communities, userId, requestStatuse
           {visibleCommunities.map((community) => (
             <article key={community.id} className="flex flex-col rounded-2xl border border-melon-border bg-white p-5">
               <div className="flex items-center gap-3">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-melon-green text-xl font-bold text-melon-heading" aria-hidden="true">{community.name.slice(0, 1).toUpperCase()}</span>
+                <Avatar src={community.avatar_url} name={community.name} className="h-12 w-12 text-xl" />
                 <div className="min-w-0">
                   <h2 className="break-words text-lg font-bold text-melon-heading"><Link href={`/home/community/${community.id}`} className="hover:text-melon-pink hover:underline">{community.name}</Link></h2>
                   <p className="mt-1 text-xs capitalize text-melon-muted">{community.visibility === 'private' ? 'Private · Approval required' : 'Public · Open to join'}</p>

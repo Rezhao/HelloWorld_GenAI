@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { isPostId, validateComment } from './comments'
 import { validateCommunity, type Community } from './community'
 import { resolveUserProfile, type UserProfile } from './profile'
+import { APPEARANCE_BUCKET, appearanceTarget, validateAppearanceImage } from './appearance'
 
 export type { UserProfile } from './profile'
 
@@ -45,7 +46,7 @@ export async function getUserProfile(user: {
   const supabase = await createClient()
   const { data: profileById, error } = await supabase
     .from('profiles')
-    .select('id, email, first_name, last_name, avatar_url')
+    .select('id, email, first_name, last_name, avatar_url, banner_path')
     .eq('id', user.id)
     .maybeSingle() as { data: UserProfile | null; error: { message: string } | null }
 
@@ -53,12 +54,10 @@ export async function getUserProfile(user: {
 
   const profile = resolveUserProfile(user, profileById)
   if (!profileById) {
-    // Never replace a profile that was saved concurrently during sign-in.
-    const { error: insertError } = await supabase.from('profiles').upsert(profile, {
-      onConflict: 'id',
-      ignoreDuplicates: true,
-    })
-    if (insertError) throw new Error(insertError.message)
+    // The live profiles table has no unique id constraint for an upsert target.
+    // Insert only when missing, without overwriting any saved profile fields.
+    const { error: insertError } = await supabase.from('profiles').insert(profile)
+    if (insertError && insertError.code !== '23505') throw new Error(insertError.message)
   } else if (!profileById.avatar_url && profile.avatar_url) {
     // Persist the provider default for post author cards, without replacing uploads.
     const { error: avatarError } = await supabase.from('profiles')
@@ -68,7 +67,10 @@ export async function getUserProfile(user: {
     if (avatarError) throw new Error(avatarError.message)
   }
 
-  return profile
+  return {
+    ...profile,
+    banner_url: profile.banner_path ? supabase.storage.from(APPEARANCE_BUCKET).getPublicUrl(profile.banner_path).data.publicUrl : null,
+  }
 }
 
 export async function signInWithGoogle() {
@@ -423,7 +425,7 @@ export async function getCommunities() {
 
   const { data, error } = await supabase
     .from('communities')
-    .select('id, name, description, visibility, created_by, created_at')
+    .select('id, name, description, visibility, created_by, created_at, avatar_path, banner_path')
     .order('name')
 
   if (error) {
@@ -435,8 +437,50 @@ export async function getCommunities() {
   if (membershipError) throw new Error(membershipError.message)
   return (data ?? []).map((community) => ({
     ...community,
+    avatar_url: community.avatar_path ? supabase.storage.from(APPEARANCE_BUCKET).getPublicUrl(community.avatar_path).data.publicUrl : null,
+    banner_url: community.banner_path ? supabase.storage.from(APPEARANCE_BUCKET).getPublicUrl(community.banner_path).data.publicUrl : null,
     is_member: community.created_by === user.id || (memberships ?? []).some((member) => member.community_id === community.id),
   })) as Community[]
+}
+
+export async function updateAppearance(formData: FormData) {
+  const { target, kind, communityId } = appearanceTarget(
+    String(formData.get('target') ?? ''), String(formData.get('kind') ?? ''), String(formData.get('communityId') ?? ''),
+  )
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sign in to change photos.')
+  if (target === 'community') {
+    const { data, error } = await supabase.from('communities').select('created_by').eq('id', communityId).maybeSingle()
+    if (error || data?.created_by !== user.id) throw new Error('Only the community owner can change photos.')
+  }
+  const remove = formData.get('remove') === 'true'
+  let newPath: string | null = null
+  if (!remove) {
+    const { bytes, contentType, extension } = await validateAppearanceImage(formData.get('image'))
+    const prefix = target === 'community' ? `communities/${communityId}/${kind}` : `profiles/${user.id}/banner`
+    newPath = `${prefix}/${crypto.randomUUID()}.${extension}`
+    const { error } = await supabase.storage.from(APPEARANCE_BUCKET).upload(newPath, bytes, { contentType, cacheControl: '31536000', upsert: false })
+    if (error) throw new Error('Photo upload failed. Please try again.')
+  }
+  const result = target === 'community'
+    ? await supabase.rpc('set_community_image', { target: communityId, image_kind: kind, new_path: newPath })
+    : await supabase.rpc('set_profile_banner', { new_path: newPath })
+  if (result.error) {
+    if (newPath) await supabase.storage.from(APPEARANCE_BUCKET).remove([newPath])
+    throw new Error('Your photo could not be saved. Check your access and try again.')
+  }
+  let warning = ''
+  if (typeof result.data === 'string' && result.data !== newPath) {
+    try {
+      const { error } = await supabase.storage.from(APPEARANCE_BUCKET).remove([result.data])
+      if (error) warning = 'Your change was saved, but the previous file could not be removed from storage.'
+    } catch {
+      warning = 'Your change was saved, but the previous file could not be removed from storage.'
+    }
+  }
+  revalidatePath('/', 'layout')
+  return { url: newPath ? supabase.storage.from(APPEARANCE_BUCKET).getPublicUrl(newPath).data.publicUrl : null, warning }
 }
 
 export async function getProfileCards(userIds: string[]) {

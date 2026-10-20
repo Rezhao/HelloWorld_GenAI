@@ -4,6 +4,7 @@ export interface UserProfile {
   first_name: string | null
   last_name: string | null
   avatar_url: string | null
+  banner_path?: string | null
 }
 
 interface AuthUser {
@@ -29,6 +30,7 @@ export function resolveUserProfile(user: AuthUser, saved: UserProfile | null): U
     email: saved?.email || user.email || null,
     first_name: firstText(saved?.first_name, metadata.first_name, identity.given_name, metadata.given_name, firstName),
     last_name: firstText(saved?.last_name, metadata.last_name, identity.family_name, metadata.family_name, lastName.join(' ')),
+    banner_path: firstText(saved?.banner_path),
     // Saved photos include user uploads and must never be replaced during sign-in.
     // Only Google accounts get a provider photo; email accounts default to initials.
     avatar_url: firstText(saved?.avatar_url) ?? (google

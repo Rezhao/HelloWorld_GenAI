@@ -11,6 +11,7 @@ The signed-in `/home` route lets users upload an image, ask Gemini for a caption
 5. Run `supabase/community-privacy.sql` in the Supabase SQL editor after the community and profile-card scripts. This adds descriptions, public/private visibility, owner membership, join requests, atomic owner approvals, and RLS protection for private posts, votes, and generated images. Existing communities remain public.
 6. Run `supabase/post-comments.sql` after the privacy migration to enable comments on dedicated post pages.
 7. Make sure the Supabase Auth providers and redirect URL from the previous assignment are still configured.
+8. Run `supabase/appearance-images.sql` to enable community profile/background photos and personal profile backgrounds. Community owners open **Edit community photos** on their community page. Users set their own background in **Settings → Profile background**. Uploads accept PNG/JPEG/WebP up to 5 MB; removing a photo restores initials or the gradient. These decorative images are public in the separate `appearance-images` bucket, including for private community headers. Private posts and generated media remain private. Owner checks run in both the server action and database, with storage ownership enforced separately. Photo changes save immediately.
 
 Private communities are discoverable by name and description. Only the owner and approved members can see their posts or post there. The owner reviews requests on the community page. Declined requests remain declined. Apply the migration before running this version of the app.
 

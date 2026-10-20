@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Avatar from '../avatar'
 import { buildExploreFeed } from '../utils/explore-feed'
 import { redirect } from 'next/navigation'
 import { createClient, getCommunities, getProfileCards, getUserProfile } from '../utils/server'
@@ -81,7 +82,7 @@ export default async function HomePage() {
                 {publicCommunities.slice(0, 6).map((community) => (
                   <div key={community.id}>
                     <Link href={`/home/community/${community.id}`} className="group flex items-start gap-3 rounded-lg px-3 py-4 transition hover:bg-melon-pink">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-melon-yellow text-sm font-bold text-melon-forest" aria-hidden="true">{community.name.slice(0, 1).toUpperCase()}</span>
+                      <Avatar src={community.avatar_url} name={community.name} className="h-9 w-9 bg-melon-yellow text-sm" />
                       <span className="min-w-0"><span className="block truncate text-sm font-bold text-melon-forest group-hover:text-melon-yellow">{community.name}</span><span className="mt-1 line-clamp-2 block text-xs leading-5 text-melon-muted group-hover:text-melon-yellow">{community.description || 'Explore posts and share your own captions.'}</span></span>
                     </Link>
                   </div>

@@ -4,6 +4,7 @@ import { createClient, getCommunities, getUserProfile } from '../utils/server'
 import SettingsForm from './settings-form'
 import HomeNav from '../home/home-nav'
 import CommunitySidebar from '../home/community-sidebar'
+import AppearanceEditor from '../appearance-editor'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -29,6 +30,7 @@ export default async function SettingsPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-melon-green-dark">Account</p>
               <h1 className="mt-2 text-3xl font-bold tracking-tight text-melon-heading">Profile settings</h1>
               <p className="mt-2 text-sm text-melon-muted">Update the details shown on your profile.</p>
+              <div className="mt-6"><AppearanceEditor bannerUrl={profile.banner_url} /></div>
               <SettingsForm
                 hasPassword={
                   user.identities?.some((identity) => identity.provider === 'email')

@@ -5,6 +5,9 @@ import { createClient, getCommunities, getProfileCards, getUserProfile } from '.
 import CommunitySidebar from '../../community-sidebar'
 import HomeNav from '../../home-nav'
 import HomeWorkspace, { type Generation } from '../../home-workspace'
+import Avatar from '../../../avatar'
+import HeaderBanner from '../../../header-banner'
+import AppearanceEditor from '../../../appearance-editor'
 
 interface Vote {
   generation_id: string
@@ -79,18 +82,24 @@ export default async function CommunityPage({ params }: { params: Promise<{ id: 
       <div className="grid w-full gap-8 pt-0 lg:grid-cols-[260px_minmax(0,1fr)]">
         <CommunitySidebar communities={communities} activeCommunityId={id} />
         <section className="min-w-0 pb-12 lg:pr-8">
-          <div className="mx-5 mt-4 h-32 rounded-2xl bg-linear-to-r from-melon-pink via-melon-yellow to-melon-green sm:h-44" aria-hidden="true" />
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+          <HeaderBanner src={community.banner_url} className="mx-5 mt-4 h-32 sm:h-44" />
+          <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
             <header className="border-b border-melon-border pb-6">
               <div className="-mt-9 flex flex-wrap items-end justify-between gap-5">
                 <div className="min-w-0">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-melon-cream bg-melon-pink text-3xl font-bold text-melon-forest">{community.name.slice(0, 1).toUpperCase()}</div>
+                  <Avatar src={community.avatar_url} name={community.name} className="h-20 w-20 border-4 border-melon-cream text-3xl" />
                   <h1 className="mt-4 break-words text-3xl font-bold tracking-tight text-melon-heading sm:text-4xl">{community.name}</h1>
                   <p className="mt-2 text-sm text-melon-muted">{community.visibility === 'private' ? 'Private community · Approval required' : 'Public community · Open to everyone signed in'}</p>
                 </div>
                 <MembershipControl communityId={id} visibility={community.visibility} isMember={community.is_member} isOwner={isOwner} requestStatus={request?.status ?? null} />
               </div>
             </header>
+            {isOwner && (
+              <details className="mt-5">
+                <summary className="w-fit cursor-pointer rounded-full bg-melon-pink px-4 py-2 text-sm font-semibold text-melon-yellow hover:bg-melon-yellow hover:text-melon-pink">Edit community photos</summary>
+                <div className="mt-4"><AppearanceEditor key={community.id} communityId={community.id} name={community.name} avatarUrl={community.avatar_url} bannerUrl={community.banner_url} /></div>
+              </details>
+            )}
             <div className="grid items-start gap-8 pt-6 xl:grid-cols-[minmax(0,1fr)_280px]">
               <div className="min-w-0">
                 {canRead ? (

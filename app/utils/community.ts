@@ -6,6 +6,8 @@ export interface Community {
   created_by: string
   created_at: string
   is_member: boolean
+  avatar_url?: string | null
+  banner_url?: string | null
 }
 
 export function canReadCommunity(community: Community, userId: string) {

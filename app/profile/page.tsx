@@ -5,6 +5,7 @@ import { createClient, getCommunities, getUserProfile } from '../utils/server'
 import HomeNav from '../home/home-nav'
 import CommunitySidebar from '../home/community-sidebar'
 import ProfileFeed from './profile-feed'
+import HeaderBanner from '../header-banner'
 
 interface GenerationRow {
   id: string
@@ -103,16 +104,16 @@ export default async function ProfilePage() {
       <div className="grid w-full gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         <CommunitySidebar communities={communities} />
         <div className="min-w-0 px-5 pt-4 pb-12 lg:pr-8">
-          <section className="mx-auto max-w-6xl rounded-2xl bg-linear-to-r from-melon-pink via-melon-yellow to-melon-green px-5 py-10 text-melon-forest sm:px-8 sm:py-14">
+          <HeaderBanner src={profile.banner_url} className="mx-auto max-w-6xl px-5 py-10 text-melon-forest sm:px-8 sm:py-14">
             <div className="mx-auto flex w-full max-w-5xl items-center gap-5">
               <Avatar src={profile.avatar_url} name={[profile.first_name, profile.last_name].filter(Boolean).join(' ')} className="h-24 w-24 border-4 border-white/80 text-3xl sm:h-28 sm:w-28" />
-              <div className="min-w-0">
+              <div className={`min-w-0 ${profile.banner_url ? 'rounded-xl bg-melon-cream/95 p-4' : ''}`}>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-melon-forest">Profile</p>
                 <h1 className="text-melon-heading mt-1 truncate text-3xl font-bold sm:text-4xl">{fullName}</h1>
                 <p className="mt-2 truncate text-sm text-melon-ink">{profile.email ?? user.email}</p>
               </div>
             </div>
-          </section>
+          </HeaderBanner>
           <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
             <div className="flex items-center justify-between gap-4">
               <Link href="/home" className="text-sm font-semibold text-melon-green-dark hover:text-melon-green-dark">Back to Melon</Link>
