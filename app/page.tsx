@@ -1,4 +1,5 @@
-import { createClient, getUserProfile } from './utils/server'
+import { redirect } from 'next/navigation'
+import { createClient } from './utils/server'
 import Login from './login'
 
 interface DbItem {
@@ -11,7 +12,10 @@ interface DbItem {
 export default async function DataPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const profile = user ? await getUserProfile(user) : null
+
+  if (user) {
+    redirect('/home')
+  }
 
   const { data: items, error } = await supabase
     .from('animals')
@@ -23,7 +27,7 @@ export default async function DataPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-melon-heading">Melon</h1>
         </div>
-        <Login profile={profile} isSignedIn={Boolean(user)} />
+        <Login profile={null} isSignedIn={false} />
       </header>
 
       {error ? (
