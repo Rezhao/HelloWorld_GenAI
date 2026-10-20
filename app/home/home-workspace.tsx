@@ -64,7 +64,7 @@ export default function HomeWorkspace({
           <div className="flex flex-wrap items-center gap-3">
             {allowShuffle && <button type="button" onClick={() => startShuffle(() => router.refresh())} disabled={isShuffling} className="rounded-full border border-melon-pink bg-melon-pink px-3 py-2 text-xs font-semibold text-melon-yellow transition hover:bg-melon-yellow hover:text-melon-pink hover:border-melon-yellow disabled:opacity-50">{isShuffling ? 'Shuffling…' : 'Shuffle feed'}</button>}
             <span className="text-sm text-melon-muted">{generations.length} {generations.length === 1 ? 'post' : 'posts'}</span>
-            <div className="flex rounded-lg border border-melon-border bg-white p-1" aria-label="Post view options">
+            <div className="hidden rounded-lg border border-melon-border bg-white p-1 lg:flex" aria-label="Post view options">
               <button
                 type="button"
                 onClick={() => setPostView('gallery')}
@@ -102,7 +102,7 @@ export default function HomeWorkspace({
             {emptyMessage}
           </div>
         ) : (
-          <div className={`mt-6 grid gap-5 ${postView === 'gallery' ? 'sm:grid-cols-2 lg:grid-cols-3' : 'mx-auto max-w-2xl grid-cols-1'}`}>
+          <div className={`mx-auto mt-6 grid max-w-2xl grid-cols-1 gap-5 ${postView === 'gallery' ? 'lg:mx-0 lg:max-w-none lg:grid-cols-3' : ''}`}>
             {generations.map((generation) => {
               const community = generation.community_id ? communityById.get(generation.community_id) : undefined
               return (

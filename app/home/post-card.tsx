@@ -52,7 +52,7 @@ export default function PostCard({ generation, community, userId, postView = 've
           </div>
         </div>
         {isDetail ? <h1 className="text-2xl font-bold leading-8 text-melon-ink">{generation.caption}</h1> : <h2 className="text-lg font-semibold leading-7 text-melon-ink"><Link href={`/home/post/${generation.id}`} className="outline-offset-4"><span className="absolute inset-0 rounded-2xl" aria-hidden="true" />{generation.caption}</Link></h2>}
-        {generation.image_url && <img src={generation.image_url} alt="Captioned community submission" className={`mt-4 w-full rounded-xl bg-melon-blush ${postView === 'vertical' ? 'max-h-[560px] object-contain' : 'aspect-16/10 object-cover'}`} />}
+        {generation.image_url && <img src={generation.image_url} alt="Captioned community submission" className={`mt-4 max-h-[560px] w-full rounded-xl bg-melon-blush object-contain ${postView === 'gallery' ? 'lg:aspect-16/10 lg:max-h-none lg:object-cover' : ''}`} />}
         <details className="relative z-10 mt-4 text-xs leading-5 text-melon-muted">
           <summary className="w-fit cursor-pointer transition hover:text-melon-forest">Caption direction</summary>
           <p className="mt-2">{generation.prompt}</p>
