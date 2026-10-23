@@ -29,3 +29,6 @@ export default async function CreatePostPage() {
     </main>
   )
 }
+
+// Bound the tracked multi-step pipeline and its image upload within the action runtime.
+export const maxDuration = 120

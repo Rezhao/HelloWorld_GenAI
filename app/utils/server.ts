@@ -8,6 +8,7 @@ import { isPostId, validateComment } from './comments'
 import { validateCommunity, type Community } from './community'
 import { resolveUserProfile, type UserProfile } from './profile'
 import { APPEARANCE_BUCKET, appearanceTarget, validateAppearanceImage } from './appearance'
+import { beginCaptionPlan, executeCaptionPlan, finishCaptionPost, failCaptionPlan, CaptionPublishError } from './caption-pipeline'
 
 export type { UserProfile } from './profile'
 
@@ -322,92 +323,33 @@ export async function createGeneration(formData: FormData) {
     throw new Error('Gemini is not configured yet. Add GEMINI_API_KEY to your environment.')
   }
 
-  const imageBytes = Buffer.from(await file.arrayBuffer()).toString('base64')
-  const generationPrompt = `${prompt.trim()}
-
-Return only one complete sentence between 8 and 20 words. Do not use bullets, labels, quotation marks, emojis, or markdown. Finish the sentence before stopping.`
-  const requestBody = JSON.stringify({
-    contents: [{
-      parts: [
-        { text: generationPrompt },
-        { inline_data: { mime_type: file.type, data: imageBytes } },
-      ],
-    }],
-    generationConfig: { maxOutputTokens: 300, temperature: 0.7 },
-  })
-  let geminiResponse: Response | null = null
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    geminiResponse = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: requestBody,
-      },
-    )
-
-    if (geminiResponse.ok || ![429, 500, 503].includes(geminiResponse.status)) {
-      break
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)))
-  }
-
-  if (!geminiResponse || !geminiResponse.ok) {
-    const providerError = geminiResponse
-      ? await geminiResponse.json().catch(() => null) as { error?: { message?: string } } | null
-      : null
-    const message = providerError?.error?.message
-    throw new Error(message ? `Gemini error: ${message}` : 'Gemini could not generate a caption. Try again shortly.')
-  }
-
-  const geminiData = await geminiResponse.json() as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> }
-      finishReason?: string
-    }>
-    promptFeedback?: { blockReason?: string }
-  }
-  const firstCandidate = geminiData.candidates?.[0]
-  const caption = firstCandidate?.content?.parts
-    ?.map((part) => part.text || '')
-    .join('')
-    .trim()
-
-  if (!caption) {
-    const reason = firstCandidate?.finishReason || geminiData.promptFeedback?.blockReason
-    throw new Error(reason
-      ? `Gemini did not return a caption (${reason}). Try a different image or prompt.`
-      : 'Gemini returned an empty caption. Try a different image.')
-  }
-
-  const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const imagePath = `${user.id}/${crypto.randomUUID()}.${extension}`
-  const { error: uploadError } = await supabase.storage
-    .from('generated-media')
-    .upload(imagePath, file, { contentType: file.type, cacheControl: '3600' })
-
-  if (uploadError) {
-    throw new Error(uploadError.message)
-  }
-
-  const { error: generationError } = await supabase
-    .from('ai_generations')
-    .insert({
-      user_id: user.id,
-      community_id: typeof communityId === 'string' && communityId ? communityId : null,
-      image_path: imagePath,
-      prompt: prompt.trim(),
-      caption,
+  const plan = await beginCaptionPlan(supabase, prompt, communityId)
+  let imagePath: string | null = null
+  try {
+    const caption = await executeCaptionPlan(supabase, plan, {
+      prompt, imageBase64: Buffer.from(await file.arrayBuffer()).toString('base64'), mime: file.type, apiKey,
     })
+    const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    imagePath = `${user.id}/${crypto.randomUUID()}.${extension}`
+    const { error: uploadError } = await supabase.storage.from('generated-media')
+      .upload(imagePath, file, { contentType: file.type, cacheControl: '3600' })
+    if (uploadError) throw new Error(uploadError.message)
 
-  if (generationError) {
-    await supabase.storage.from('generated-media').remove([imagePath])
-    throw new Error(generationError.message)
+    if (plan.request_id) {
+      await finishCaptionPost(supabase, plan.request_id, imagePath)
+    } else {
+      const { error } = await supabase.from('ai_generations').insert({
+        user_id: user.id, community_id: communityId, image_path: imagePath, prompt: prompt.trim(), caption,
+      })
+      if (error) throw new Error(error.message)
+    }
+  } catch (error) {
+    const uncertain = error instanceof CaptionPublishError && !error.safeToRemoveUpload
+    if (!uncertain) {
+      if (imagePath) await supabase.storage.from('generated-media').remove([imagePath])
+      await failCaptionPlan(supabase, plan, error instanceof Error ? error.message : 'Caption generation failed.')
+    }
+    throw error
   }
 
   revalidatePath('/home')
