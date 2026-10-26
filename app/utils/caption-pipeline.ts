@@ -1,5 +1,5 @@
 export const DEFAULT_CAPTION_INSTRUCTIONS = 'Return only one complete sentence between 8 and 20 words. Do not use bullets, labels, quotation marks, emojis, or markdown. Finish the sentence before stopping.'
-export interface CaptionStep { id: string; model_key: string; temperature: number; system_prompt: string; user_prompt: string }
+export interface CaptionStep { id: string; model_key: string; temperature: number; temperature_supported?: boolean; system_prompt: string; user_prompt: string }
 export interface CaptionPlan { request_id: string | null; steps: CaptionStep[] }
 export interface CaptionRpcClient {
   rpc(name: string, args?: Record<string, unknown>): PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>
@@ -32,7 +32,8 @@ export async function executeCaptionPlan(client: CaptionRpcClient, plan: Caption
   for (const step of plan.steps) {
     if (!/^[a-zA-Z0-9._-]+$/.test(step.model_key) || !Number.isFinite(Number(step.temperature)) || Number(step.temperature)<0 || Number(step.temperature)>2) throw new Error('Invalid model configuration. Ask an admin to check the caption pipeline.')
     // Always send the key to Google's fixed endpoint; provider records cannot redirect credentials.
-    const body = JSON.stringify({ contents: [{ parts: [{ text: renderCaptionPrompt(step,input.prompt,caption) }, { inline_data: { mime_type: input.mime,data: input.imageBase64 } }] }], generationConfig: { maxOutputTokens:300,temperature:Number(step.temperature) } })
+    const submittedPrompt = renderCaptionPrompt(step,input.prompt,caption)
+    const body = JSON.stringify({ contents: [{ parts: [{ text: submittedPrompt }, { inline_data: { mime_type: input.mime,data: input.imageBase64 } }] }], generationConfig: { maxOutputTokens:300,...(step.temperature_supported===false?{}:{temperature:Number(step.temperature)}) } })
     const started = now()
     let response: Response | null = null
     for (let attempt=0; attempt<2; attempt++) {
@@ -52,7 +53,9 @@ export async function executeCaptionPlan(client: CaptionRpcClient, plan: Caption
       throw new Error(reason ? `Gemini did not return a caption (${reason}). Try another image or prompt.` : 'Gemini returned an empty caption. Try another image.')
     }
     if (plan.request_id) {
-      const { error } = await client.rpc('record_caption_response', { target_request:plan.request_id,target_step:step.id,output_text:caption,input_token_count:data.usageMetadata?.promptTokenCount??null,output_token_count:data.usageMetadata?.candidatesTokenCount??null,elapsed_ms:Math.min(3600000,Math.max(0,Math.round(now()-started))) })
+      const args = { target_request:plan.request_id,target_step:step.id,output_text:caption,input_token_count:data.usageMetadata?.promptTokenCount??null,output_token_count:data.usageMetadata?.candidatesTokenCount??null,elapsed_ms:Math.min(3600000,Math.max(0,Math.round(now()-started))) }
+      let { error } = await client.rpc('record_caption_response_details',{...args,sent_prompt:submittedPrompt})
+      if (error?.code==='PGRST202') ({error}=await client.rpc('record_caption_response',args))
       if (error) throw new Error('The caption response could not be recorded. Please try again.')
     }
   }

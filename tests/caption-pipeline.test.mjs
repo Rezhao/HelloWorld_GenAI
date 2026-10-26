@@ -19,7 +19,7 @@ test('multi-step execution records each response and passes actual previous outp
   const caption=await executeCaptionPlan(client,{...plan,steps:[step,{...step,id:'step-2',temperature:0.4,user_prompt:'Refine {{previous_response}} for {{prompt}}'}]},input,{now:()=>clock++,fetch:async(url,options)=>{calls.push({url,body:JSON.parse(options.body)});return success(calls.length===1?'First caption.':'Final caption.')}})
   assert.equal(caption,'Final caption.')
   assert.equal(records.length,2)
-  assert.deepEqual(records.map(record=>[record.name,record.args.target_step,record.args.input_token_count,record.args.output_token_count]),[['record_caption_response','step-1',12,8],['record_caption_response','step-2',12,8]])
+  assert.deepEqual(records.map(record=>[record.name,record.args.target_step,record.args.input_token_count,record.args.output_token_count]),[['record_caption_response_details','step-1',12,8],['record_caption_response_details','step-2',12,8]])
   assert.match(calls[1].body.contents[0].parts[0].text,/Refine First caption\. for A campus caption/)
   assert.equal(calls[1].body.generationConfig.temperature,0.4)
   assert.ok(calls.every(call=>call.url.startsWith('https://generativelanguage.googleapis.com/v1beta/models/')))
@@ -64,4 +64,19 @@ test('thrown transport errors also recover commit state and preserve committed i
   const client={rpc:async name=>{if(name==='finish_caption_request')throw Error('Transport failed');return {data:{status:'completed',generation_id:'saved-post'},error:null}}}
   assert.equal(await finishCaptionPost(client,'request-1','path'),'saved-post')
   await assert.rejects(finishCaptionPost({rpc:async()=>{throw Error('Transport failed')}},'request-1','path'),error=>error.safeToRemoveUpload===false)
+})
+
+test('exact submitted text is logged and unsupported temperature is omitted',async()=>{
+ let logged,body
+ const client={rpc:async(name,args)=>{logged={name,args};return {data:null,error:null}}}
+ await executeCaptionPlan(client,{...plan,steps:[{...step,temperature_supported:false}]},input,{fetch:async(_url,options)=>{body=JSON.parse(options.body);return success('Caption.')}})
+ assert.equal(logged.args.sent_prompt,body.contents[0].parts[0].text)
+ assert.equal('temperature' in body.generationConfig,false)
+})
+test('only a missing details endpoint falls back to legacy response tracking',async()=>{
+ const names=[]
+ const client={rpc:async name=>{names.push(name);return {data:null,error:name==='record_caption_response_details'?{code:'PGRST202'}:null}}}
+ await executeCaptionPlan(client,plan,input,{fetch:async()=>success('Caption.')})
+ assert.deepEqual(names,['record_caption_response_details','record_caption_response'])
+ await assert.rejects(executeCaptionPlan({rpc:async()=>({data:null,error:{code:'42501'}})},plan,input,{fetch:async()=>success('Caption.')}),/could not be recorded/)
 })
