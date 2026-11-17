@@ -8,7 +8,7 @@ import Avatar from '../../avatar'
 
 export default function CommunityDirectory({ communities, userId, requestStatuses }: {
   communities: Community[]
-  userId: string
+  userId: string | null
   requestStatuses: Record<string, string>
 }) {
   const [query, setQuery] = useState('')
@@ -23,11 +23,11 @@ export default function CommunityDirectory({ communities, userId, requestStatuse
     <div className="mt-6">
       <label htmlFor="community-search" className="block text-sm font-semibold text-melon-ink">Search communities</label>
       <input id="community-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name or description" className="mt-2 w-full rounded-xl border border-melon-border bg-white px-4 py-3 text-sm outline-none focus:border-melon-green-dark focus:ring-2 focus:ring-melon-mint" />
-      <div className="mt-4 flex flex-wrap gap-2" aria-label="Filter communities">
+      {userId && <div className="mt-4 flex flex-wrap gap-2" aria-label="Filter communities">
         {(['all', 'public', 'private', 'joined'] as const).map((value) => (
           <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition ${filter === value ? 'bg-melon-pink text-melon-yellow' : 'border border-melon-border bg-white text-melon-ink hover:bg-melon-yellow hover:text-melon-pink'}`}>{value === 'all' ? 'All communities' : value}</button>
         ))}
-      </div>
+      </div>}
       <p className="mt-5 text-xs text-melon-muted" role="status">{visibleCommunities.length} {visibleCommunities.length === 1 ? 'community' : 'communities'}</p>
       {visibleCommunities.length === 0 ? (
         <p className="mt-4 rounded-2xl border border-dashed border-melon-border p-8 text-center text-sm text-melon-muted">{communities.length === 0 ? 'No communities yet. Use Add new community to start one.' : 'No communities match. Try another search or filter.'}</p>
@@ -45,7 +45,7 @@ export default function CommunityDirectory({ communities, userId, requestStatuse
               <p className="mt-4 flex-1 whitespace-pre-wrap break-words text-sm leading-6 text-melon-muted">{community.description || 'Explore posts and share your own captions.'}</p>
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-melon-border pt-4">
                 <Link href={`/home/community/${community.id}`} className="text-sm font-semibold text-melon-heading hover:underline">View community</Link>
-                <MembershipControl communityId={community.id} visibility={community.visibility} isMember={community.is_member} isOwner={community.created_by === userId} requestStatus={requestStatuses[community.id] ?? null} showCreatePost={false} />
+                <MembershipControl isSignedIn={!!userId} communityId={community.id} visibility={community.visibility} isMember={community.is_member} isOwner={community.created_by === userId} requestStatus={requestStatuses[community.id] ?? null} showCreatePost={false} />
               </div>
             </article>
           ))}

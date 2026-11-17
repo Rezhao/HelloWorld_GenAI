@@ -1,6 +1,7 @@
+import { GuestCommunityPage } from '../../guest-pages'
 import { canReadCommunity } from '../../../utils/community'
 import { MembershipControl, JoinRequests } from '../community-controls'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { createClient, getCommunities, getProfileCards, getUserProfile } from '../../../utils/server'
 import CommunitySidebar from '../../community-sidebar'
 import HomeNav from '../../home-nav'
@@ -20,7 +21,7 @@ export default async function CommunityPage({ params }: { params: Promise<{ id: 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/sign-in')
+  if (!user) return <GuestCommunityPage id={id} />
 
   const profile = await getUserProfile(user)
   const communities = await getCommunities()

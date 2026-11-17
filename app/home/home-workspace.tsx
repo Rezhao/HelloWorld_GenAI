@@ -40,7 +40,7 @@ export default function HomeWorkspace({
   allowShuffle = false,
 }: {
   generations: DisplayGeneration[]
-  userId: string
+  userId: string | null
   sectionTitle?: string
   emptyMessage?: string
   communities?: Community[]

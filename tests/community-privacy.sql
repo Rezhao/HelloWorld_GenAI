@@ -79,5 +79,5 @@ select pg_temp.check_true(not public.can_read_community('20000000-0000-0000-0000
 select pg_temp.check_true((select status = 'rejected' from public.community_join_requests where community_id = '20000000-0000-0000-0000-000000000001' and user_id = auth.uid()), 'declined status persists');
 set local role anon;
 select pg_temp.check_true((select count(*) = 0 from public.ai_generations), 'anonymous users cannot read posts');
-select pg_temp.check_true((select count(*) = 0 from storage.objects where bucket_id = 'generated-media'), 'anonymous users cannot read generated media');
+select pg_temp.check_true((select count(*) = 1 from storage.objects where bucket_id = 'generated-media'), 'anonymous users can preview only public post media');
 rollback;

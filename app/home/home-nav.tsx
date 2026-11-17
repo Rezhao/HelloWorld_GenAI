@@ -37,14 +37,14 @@ export default function HomeNav({
       </nav>
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <Link
-          href="/home/create"
+          href={profile ? "/home/create" : "/sign-in"}
           aria-current={active === 'create' ? 'page' : undefined}
           className="flex items-center gap-2 rounded-full bg-melon-pink px-3 py-2 text-sm font-semibold text-melon-yellow transition hover:bg-melon-yellow hover:text-melon-pink sm:px-4"
         >
           <span className="text-xl font-normal leading-none" aria-hidden="true">+</span>
           Create
         </Link>
-        <Login profile={profile} isSignedIn />
+        <Login profile={profile} isSignedIn={profile !== null} />
       </div>
       </div>
     </header>

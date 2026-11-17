@@ -1,3 +1,4 @@
+import { GuestPostPage } from '../../guest-pages'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient, getCommunities, getProfileCards, getUserProfile } from '../../../utils/server'
@@ -16,7 +17,7 @@ export default async function PostPage({ params, searchParams }: {
   if (!isPostId(id)) notFound()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/sign-in')
+  if (!user) return <GuestPostPage id={id} pageParam={(await searchParams).page} />
 
   // Query through the viewer's RLS session before loading media or comments.
   const { data: post, error: postError } = await supabase.from('ai_generations')

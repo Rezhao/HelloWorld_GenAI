@@ -10,7 +10,7 @@ import type { DisplayGeneration } from './home-workspace'
 export default function PostCard({ generation, community, userId, postView = 'vertical', isDetail = false, commentCount }: {
   generation: DisplayGeneration
   community?: { id: string; name: string }
-  userId: string
+  userId: string | null
   postView?: 'gallery' | 'vertical'
   isDetail?: boolean
   commentCount?: number
@@ -19,6 +19,7 @@ export default function PostCard({ generation, community, userId, postView = 've
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   async function handleVote(vote: 1 | -1) {
+    if (!userId) { router.push('/sign-in'); return }
     if (busy) return
     setBusy(true)
     setMessage('')

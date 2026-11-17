@@ -11,15 +11,17 @@ import { useMobileNavigation } from '../mobile-navigation'
 export default function CommunitySidebar({
   communities,
   activeCommunityId,
+  isSignedIn = true,
 }: {
   communities: Community[]
+  isSignedIn?: boolean
   activeCommunityId?: string
 }) {
   const joinedCommunities = communities.filter((community) => community.is_member)
-  const communitySections = [
+  const communitySections = isSignedIn ? [
     { label: 'Communities', communities: joinedCommunities.filter((community) => community.visibility === 'public') },
     { label: 'Private', communities: joinedCommunities.filter((community) => community.visibility === 'private') },
-  ]
+  ] : [{ label: 'Public communities', communities: communities.filter((community) => community.visibility === 'public') }]
   const { isOpen, closeMenu } = useMobileNavigation()
   const drawer = useRef<HTMLDialogElement>(null)
   const router = useRouter()
@@ -105,6 +107,7 @@ export default function CommunitySidebar({
         onClick={() => {
           drawer.current?.close()
           closeMenu()
+          if (!isSignedIn) { router.push('/sign-in'); return }
           setMessage('')
           setIsModalOpen(true)
         }}
@@ -120,7 +123,7 @@ export default function CommunitySidebar({
             <span className="text-xs text-melon-muted">{section.communities.length}</span>
           </div>
           {section.communities.length > 0 ? (
-            <nav className="mt-4 space-y-1" aria-label={section.label === 'Private' ? 'Private communities' : 'Joined communities'}>
+            <nav className="mt-4 space-y-1" aria-label={section.label === 'Private' ? 'Private communities' : isSignedIn ? 'Joined communities' : 'Public communities'}>
               {section.communities.map((community) => (
                 <Link
                   key={community.id}
@@ -211,7 +214,7 @@ export default function CommunitySidebar({
                 {(['public', 'private'] as const).map((type) => (
                   <label key={type} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${visibility === type ? 'border-melon-green bg-melon-mint' : 'border-melon-border'}`}>
                     <input type="radio" name="visibility" value={type} checked={visibility === type} onChange={() => setVisibility(type)} className="mt-1 accent-melon-green" />
-                    <span><span className="block text-sm font-semibold capitalize text-melon-forest">{type}</span><span className="mt-1 block text-xs leading-5 text-melon-muted">{type === 'public' ? 'Anyone signed in can view posts and join.' : 'Only approved members can view and post. You approve join requests.'}</span></span>
+                    <span><span className="block text-sm font-semibold capitalize text-melon-forest">{type}</span><span className="mt-1 block text-xs leading-5 text-melon-muted">{type === 'public' ? 'Anyone can view posts. Sign in to join and participate.' : 'Only approved members can view and post. You approve join requests.'}</span></span>
                   </label>
                 ))}
               </fieldset>
