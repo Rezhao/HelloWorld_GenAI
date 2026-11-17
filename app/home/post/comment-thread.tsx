@@ -1,8 +1,9 @@
 'use client'
 
+import AuthLink from '../../auth-link'
+
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Avatar from '../../avatar'
 import { addComment, deleteComment } from '../../utils/server'
 
@@ -73,7 +74,7 @@ export default function CommentThread({ postId, userId, comments, currentName, c
           <p id="comment-limit" className="text-xs text-melon-muted">{body.length}/2,000</p>
           <button type="submit" disabled={isPosting || !body.trim()} className="rounded-full bg-melon-pink px-5 py-2.5 text-sm font-semibold text-melon-yellow transition hover:bg-melon-yellow hover:text-melon-pink disabled:cursor-not-allowed disabled:opacity-50">{isPosting ? 'Posting…' : 'Comment'}</button>
         </div>
-      </form> : <p className="mt-5 rounded-2xl border border-melon-border p-5 text-sm text-melon-muted"><Link href="/sign-in" className="font-semibold text-melon-pink hover:underline">Sign in</Link> to join the conversation.</p>}
+      </form> : <p className="mt-5 rounded-2xl border border-melon-border p-5 text-sm text-melon-muted"><AuthLink  className="font-semibold text-melon-pink hover:underline">Sign in</AuthLink> to join the conversation.</p>}
       {error && <p role="alert" className="mt-4 text-sm text-melon-berry">{error}</p>}
       {status && <p role="status" className="mt-4 text-sm text-melon-green-dark">{status}</p>}
       {comments.length === 0 ? (

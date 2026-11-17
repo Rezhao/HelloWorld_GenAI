@@ -1,5 +1,6 @@
 'use server'
 
+import { safeReturnPath } from './auth-return'
 import { createServerClient } from '@supabase/ssr'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
@@ -74,7 +75,7 @@ export async function getUserProfile(user: {
   }
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(returnTo = '/home') {
   const supabase = await createClient()
   const requestHeaders = await headers()
   const origin = requestHeaders.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL
@@ -86,7 +87,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeReturnPath(returnTo))}`,
     },
   })
 

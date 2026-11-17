@@ -1,3 +1,4 @@
+import AuthLink from '../auth-link'
 import Link from 'next/link'
 import Login from '../login'
 import { MobileMenuButton } from '../mobile-navigation'
@@ -36,14 +37,15 @@ export default function HomeNav({
         </Link>
       </nav>
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-        <Link
-          href={profile ? "/home/create" : "/sign-in"}
+        <AuthLink
+          isSignedIn={!!profile}
+          href="/home/create"
           aria-current={active === 'create' ? 'page' : undefined}
           className="flex items-center gap-2 rounded-full bg-melon-pink px-3 py-2 text-sm font-semibold text-melon-yellow transition hover:bg-melon-yellow hover:text-melon-pink sm:px-4"
         >
           <span className="text-xl font-normal leading-none" aria-hidden="true">+</span>
           Create
-        </Link>
+        </AuthLink>
         <Login profile={profile} isSignedIn={profile !== null} />
       </div>
       </div>

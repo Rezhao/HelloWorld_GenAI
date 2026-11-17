@@ -1,12 +1,14 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
+import { safeReturnPath } from '../utils/auth-return'
 import { useRouter } from 'next/navigation'
 import { signInWithGoogle, signInWithPassword, signUpWithPassword } from '../utils/server'
 
 type AuthMode = 'sign-in' | 'sign-up'
 
-export default function SignInForm() {
+export default function SignInForm({ returnTo = '/home' }: { returnTo?: string }) {
+  const destination = safeReturnPath(returnTo)
   const router = useRouter()
   const [mode, setMode] = useState<AuthMode>('sign-in')
   const [firstName, setFirstName] = useState('')
@@ -29,7 +31,8 @@ export default function SignInForm() {
     try {
       if (mode === 'sign-in') {
         await signInWithPassword(email, password)
-        router.push('/home')
+        router.replace(destination)
+        router.refresh()
       } else {
         await signUpWithPassword(firstName, lastName, email, password)
         setMessage('Account created. Check your email if confirmation is required, then sign in.')
@@ -43,7 +46,7 @@ export default function SignInForm() {
 
   async function handleGoogleSignIn() {
     try {
-      const googleUrl = await signInWithGoogle()
+      const googleUrl = await signInWithGoogle(destination)
       window.location.assign(googleUrl)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to start Google sign-in.')

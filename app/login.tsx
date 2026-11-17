@@ -1,5 +1,7 @@
 'use client'
 
+import AuthLink from './auth-link'
+
 import Link from 'next/link'
 import { useState } from 'react'
 import { signOut } from './utils/server'
@@ -45,12 +47,11 @@ export default function Login({
           <Avatar src={profile?.avatar_url} name={[profile?.first_name, profile?.last_name].filter(Boolean).join(' ')} className="h-full w-full text-sm" />
         </button>
       ) : (
-        <Link
-          href="/sign-in"
+        <AuthLink
           className="rounded-full bg-melon-pink px-4 py-2 text-sm font-semibold text-melon-yellow shadow-sm transition hover:bg-melon-yellow hover:text-melon-pink"
         >
           Sign in
-        </Link>
+        </AuthLink>
       )}
 
       {isSignedIn && isOpen ? (

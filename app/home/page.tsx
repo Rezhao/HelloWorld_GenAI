@@ -1,3 +1,4 @@
+import AuthLink from '../auth-link'
 import Link from 'next/link'
 import Avatar from '../avatar'
 import { buildExploreFeed } from '../utils/explore-feed'
@@ -73,7 +74,7 @@ export default async function HomePage() {
             <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-melon-heading">Melon</h1>
             <p className="mt-2 text-sm leading-6 text-melon-muted">Fresh perspectives from public communities. Discover a caption, find your people.</p>
           </header>
-          {!user && <p className="mb-6 rounded-2xl border border-melon-border bg-melon-yellow-soft p-4 text-sm text-melon-ink">Explore Melon freely. <Link href="/sign-in" className="font-bold text-melon-pink hover:underline">Sign in</Link> to vote, post, comment, and join communities.</p>}
+          {!user && <p className="mb-6 rounded-2xl border border-melon-border bg-melon-yellow-soft p-4 text-sm text-melon-ink">Explore Melon freely. <AuthLink  className="font-bold text-melon-pink hover:underline">Sign in</AuthLink> to vote, post, comment, and join communities.</p>}
           <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
             <div className="min-w-0">
               <HomeWorkspace generations={generations} userId={user?.id ?? null} communities={publicCommunities} sectionTitle="Explore" eyebrow="Public community posts" emptyMessage="No public posts yet. Create a post in a public community to start the conversation." initialPostView="vertical" allowShuffle />

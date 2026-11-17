@@ -1,3 +1,4 @@
+import { signInHref } from '../utils/auth-return'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient, getCommunities, getUserProfile } from '../utils/server'
@@ -11,7 +12,7 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/sign-in')
+    redirect(signInHref('/settings'))
   }
 
   const [profile, communities] = await Promise.all([getUserProfile(user), getCommunities()])

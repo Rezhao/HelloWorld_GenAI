@@ -1,5 +1,7 @@
 'use client'
 
+import { signInHref } from '../utils/auth-return'
+
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useRef, useState } from 'react'
@@ -107,7 +109,7 @@ export default function CommunitySidebar({
         onClick={() => {
           drawer.current?.close()
           closeMenu()
-          if (!isSignedIn) { router.push('/sign-in'); return }
+          if (!isSignedIn) { router.push(signInHref(window.location.pathname + window.location.search + window.location.hash)); return }
           setMessage('')
           setIsModalOpen(true)
         }}

@@ -1,5 +1,7 @@
 'use client'
 
+import AuthLink from '../../auth-link'
+
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -34,7 +36,7 @@ export function MembershipControl({ communityId, visibility, isMember, isOwner, 
     <div>
       <div className="flex flex-wrap items-center gap-3">
         {showCreatePost && isMember && <Link href="/home/create" className="rounded-full border border-melon-border bg-white px-5 py-2.5 text-sm font-semibold text-melon-forest transition hover:bg-melon-cream">+ Create post</Link>}
-        {!isSignedIn ? <Link href="/sign-in" className="rounded-full bg-melon-pink px-6 py-2.5 text-sm font-bold text-melon-yellow hover:bg-melon-yellow hover:text-melon-pink">Sign in to join</Link> : isOwner ? <span className="rounded-full bg-melon-mint px-5 py-2.5 text-sm font-semibold text-melon-green-dark">Owner</span>
+        {!isSignedIn ? <AuthLink  className="rounded-full bg-melon-pink px-6 py-2.5 text-sm font-bold text-melon-yellow hover:bg-melon-yellow hover:text-melon-pink">Sign in to join</AuthLink> : isOwner ? <span className="rounded-full bg-melon-mint px-5 py-2.5 text-sm font-semibold text-melon-green-dark">Owner</span>
           : isMember ? <span className="rounded-full border border-melon-green bg-melon-mint px-5 py-2.5 text-sm font-semibold text-melon-green-dark">✓ Joined</span>
           : requestStatus === 'pending' ? <span role="status" className="rounded-full border border-melon-gold bg-melon-yellow-soft px-5 py-2.5 text-sm font-semibold text-melon-ink">Request pending</span>
           : requestStatus === 'rejected' ? <span role="status" className="rounded-full bg-melon-blush px-5 py-2.5 text-sm font-semibold text-melon-muted">Request declined</span>

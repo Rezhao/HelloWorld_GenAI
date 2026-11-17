@@ -1,5 +1,7 @@
 'use client'
 
+import { signInHref } from '../utils/auth-return'
+
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -19,7 +21,7 @@ export default function PostCard({ generation, community, userId, postView = 've
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   async function handleVote(vote: 1 | -1) {
-    if (!userId) { router.push('/sign-in'); return }
+    if (!userId) { router.push(signInHref(window.location.pathname + window.location.search + window.location.hash)); return }
     if (busy) return
     setBusy(true)
     setMessage('')

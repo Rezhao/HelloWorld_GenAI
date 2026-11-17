@@ -1,3 +1,4 @@
+import { signInHref } from '../../utils/auth-return'
 import { redirect } from 'next/navigation'
 import { createClient, getCommunities, getUserProfile } from '../../utils/server'
 import HomeNav from '../home-nav'
@@ -7,7 +8,7 @@ import CreatePostForm from './create-post-form'
 export default async function CreatePostPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/sign-in')
+  if (!user) redirect(signInHref('/home/create'))
 
   const profile = await getUserProfile(user)
   const communities = await getCommunities()
