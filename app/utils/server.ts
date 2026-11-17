@@ -555,6 +555,16 @@ export async function joinCommunity(communityId: string) {
   revalidatePath('/home', 'layout')
 }
 
+export async function leaveCommunity(communityId: string) {
+  if (!isPostId(communityId)) throw new Error('Community not found.')
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sign in to leave a community.')
+  const { error } = await supabase.rpc('leave_community', { target_community: communityId })
+  if (error) throw new Error(error.message)
+  revalidatePath('/', 'layout')
+}
+
 export async function reviewCommunityRequest(communityId: string, userId: string, approve: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

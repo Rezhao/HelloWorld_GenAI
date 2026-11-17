@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Avatar from '../../avatar'
-import { joinCommunity, reviewCommunityRequest } from '../../utils/server'
+import { joinCommunity, leaveCommunity, reviewCommunityRequest } from '../../utils/server'
 
 export function MembershipControl({ communityId, visibility, isMember, isOwner, requestStatus, showCreatePost = true, isSignedIn = true }: {
   communityId: string
@@ -21,6 +21,7 @@ export function MembershipControl({ communityId, visibility, isMember, isOwner, 
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   async function join() {
+    if (busy) return
     setBusy(true)
     setMessage('')
     try {
@@ -32,12 +33,26 @@ export function MembershipControl({ communityId, visibility, isMember, isOwner, 
       setBusy(false)
     }
   }
+  async function leave() {
+    if (busy) return
+    if (visibility === 'private' && !window.confirm('Leave this private community? You will need owner approval to join again.')) return
+    setBusy(true)
+    setMessage('')
+    try {
+      await leaveCommunity(communityId)
+      router.refresh()
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to leave. Try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
         {showCreatePost && isMember && <Link href="/home/create" className="rounded-full border border-melon-border bg-white px-5 py-2.5 text-sm font-semibold text-melon-forest transition hover:bg-melon-cream">+ Create post</Link>}
         {!isSignedIn ? <AuthLink  className="rounded-full bg-melon-pink px-6 py-2.5 text-sm font-bold text-melon-yellow hover:bg-melon-yellow hover:text-melon-pink">Sign in to join</AuthLink> : isOwner ? <span className="rounded-full bg-melon-mint px-5 py-2.5 text-sm font-semibold text-melon-green-dark">Owner</span>
-          : isMember ? <span className="rounded-full border border-melon-green bg-melon-mint px-5 py-2.5 text-sm font-semibold text-melon-green-dark">✓ Joined</span>
+          : isMember ? <button type="button" disabled={busy} onClick={() => void leave()} className="rounded-full border border-melon-pink bg-white px-5 py-2.5 text-sm font-semibold text-melon-pink transition hover:bg-melon-pink hover:text-melon-yellow disabled:opacity-50">{busy ? 'Leaving…' : 'Leave community'}</button>
           : requestStatus === 'pending' ? <span role="status" className="rounded-full border border-melon-gold bg-melon-yellow-soft px-5 py-2.5 text-sm font-semibold text-melon-ink">Request pending</span>
           : requestStatus === 'rejected' ? <span role="status" className="rounded-full bg-melon-blush px-5 py-2.5 text-sm font-semibold text-melon-muted">Request declined</span>
           : <button type="button" disabled={busy} onClick={() => void join()} className="rounded-full bg-melon-pink px-6 py-2.5 text-sm font-bold text-melon-yellow transition hover:bg-melon-yellow hover:text-melon-pink disabled:opacity-50">{busy ? 'Submitting…' : visibility === 'private' ? 'Request to join' : 'Join community'}</button>}

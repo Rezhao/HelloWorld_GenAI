@@ -2,7 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Melon setup
 
-The signed-in `/home` route lets users upload an image, ask Gemini for a caption, and upvote or downvote captions. Before using it:
+The `/home` route shows public posts to everyone. Signed-in users can upload an image, ask Gemini for a caption, and upvote or downvote captions. Before using it:
 
 1. Add `GEMINI_API_KEY` to `.env` alongside the existing `SUPABASE_URL` and `SUPABASE_ANON_KEY` values.
 2. The original generation, vote, storage, and RLS setup should already be applied in Supabase from the previous setup.
@@ -13,13 +13,16 @@ The signed-in `/home` route lets users upload an image, ask Gemini for a caption
 7. Make sure the Supabase Auth providers and redirect URL from the previous assignment are still configured.
 8. Run `supabase/appearance-images.sql` to enable community profile/background photos and personal profile backgrounds. Community owners use **Edit cover photo** in the bottom-right corner of the banner or the camera button on the community profile photo. Existing photos offer change/remove options. Users set their own background in **Settings → Profile background**. Uploads accept PNG/JPEG/WebP up to 5 MB; removing a photo restores initials or the gradient. These decorative images are public in the separate `appearance-images` bucket, including for private community headers. Private posts and generated media remain private. Owner checks run in both the server action and database, with storage ownership enforced separately. Photo changes save immediately.
 
+9. Run `supabase/public-browsing.sql` to enable guest browsing of public communities, posts, comments, and attached images without exposing private content or enabling guest writes.
+10. Run `supabase/leave-community.sql` to enable **Leave community** on joined community pages and Explore cards. Leaving removes the membership and old join approval atomically. Public communities can be rejoined immediately; private communities need fresh owner approval. Owners cannot leave their own communities. Posts and votes are retained.
+
 Private communities are discoverable by name and description. Only the owner and approved members can see their posts or post there. The owner reviews requests on the community page. Declined requests remain declined. Apply the migration before running this version of the app.
 
 Run application regression checks with `node --test tests/*.test.mjs`. The SQL access-control regressions are `tests/community-privacy.sql` and `tests/post-comments.sql`; run it against a disposable PostgreSQL database with Supabase auth/storage schemas and the migrations applied. Both roll their fixtures back.
 
 Posts open at `/home/post/[id]` from Melon, communities, and profile tabs. Signed-in users can comment on public posts; private threads require approved membership. Comments appear newest first in pages of 50. Authors can delete their own comments.
 
-The Gemini request stays on the server, and the API key is never exposed to the browser. Generated images use signed URLs and are only readable by authenticated users.
+The Gemini request stays on the server, and the API key is never exposed to the browser. Generated images use signed URLs; guests can preview images attached to public posts, while private content remains protected.
 
 ## Getting Started
 
